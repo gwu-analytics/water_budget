@@ -1,0 +1,8 @@
+---
+- customerNumber: "10155266"
+  customerName: "Sonrisa Owners Association Inc"
+  premisesKey : "5637168360"
+  irrigatableArea: 38672.61
+  meters:
+    water: ["8418101", "22112512"]
+    irrigation: ["8415570"]
