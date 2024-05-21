@@ -22,7 +22,7 @@ The analysis period is the span of time for each given analysis. This period mus
 
 Water budgets will be calculated by taking as argument the acreage of irrigatable land for a given customer and calculating a weekly allowance based on 1" of irrigation over the totality of that acreage.
 
-Where $b$ is the weekly water budget and $a$ is the acreage of irragatable land:
+Where $b$ is the weekly water budget, $a$ is the acreage of irrigatable land, and $c$ is the applicable drought contingency modifier:
 
 $$
 b = a * 43560 * 0.83 * 7.48 / 1000 * c
@@ -30,11 +30,14 @@ $$
 
 In this calculation, $a$ is first converted from acreage to square feet by multiplying the variable by 43,560. Then, the volume in cubic feet is calcuated by further multiplying this product by 0.83 (1" converted into feet). The number of gallons is then calculated using the value 7.48 (the number of gallons in a cubic foot). Finally, the product is converted into kgals by dividing by 1000.
 
-Further calculation is needed to account for Drought Contingency
+Further calculation is needed to account for Drought Contingency $c$
 
 This value becomes the weekly water budget for the customer during subsequent analysis.
 
 ### Drought contingency modifier
+
+The drought contingency modifier is introduced as an argument in the program based on the following table:
+
 
 ### Irrigation violation calculation
 
@@ -57,6 +60,8 @@ Further experimentation will be done to compare a statistically significant set 
 ## Software
 
 ## Questions
+
 - Should we be including "commercial" meters such as clubhouse and pool meters?
 - Should we use sum of all meters or only the irrigation meters?
     - Need to test both options to see how they perform.
+    - Sum of both meters is necessary to infer the correct drought contingency value per Chelsea.
