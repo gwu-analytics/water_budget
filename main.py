@@ -1,27 +1,13 @@
-import pandas as pd
-import pyodbc
-from sqlalchemy import create_engine, text
-import openpyxl
-
-
-odm = (
-    'mssql+pyodbc:///?odbc_connect='
-    'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=192.168.95.56\\UCENTRA;'
-    'DATABASE=ODMReporting;'
-    'UID=odmreport;'
-    'PWD=odmreport;'
-)
-
-odm_query = text("""
-    SELECT QUERY HERE
-""")
+import tkinter as tk
+from tkinter import filedialog
+import yaml
+from mdm_query import *
 
 
 class Customer:
     def __init__(self, name, acreage):
         self.name, self.acreage, self.allowance, self.meters, self.usage = name, acreage, None, None, None
-        self.__acc_party = acc_party
+        self.__acc_party = None
 
     def set_acc_party(self, acc_party):
         self.__acc_party = acc_party
@@ -35,24 +21,42 @@ class Customer:
     def set_usage(self, usage):
         self.usage = usage
 
+    def get_acc_party(self):
+        return self.__acc_party
+
 
 def calculate_budget(acres):
-    return (acres * 43560 * 0.83 * 7.48) / 1000
+    return (acres * 0.83 * 7.48) / 1000
+
+
+def file_explorer():
+    root = tk.Tk()
+    root.withdraw()
+    return filedialog.askopenfilename()
 
 
 if __name__ == "__main__":
-    # file = file picker
-    customers = pd.read_csv(file)
+    file_selected = file_explorer()  # needs error handling
+    with open(file_selected, 'r') as file:
+        data = yaml.safe_load(file)
 
-    odm_engine = create_engine(odm)
+    date = input('Enter target date like YYYY-MM-DD: ')
 
-    # Get analysis period
-    # - Get last full week?
-    # - Get last seven days?
+    customers = []
+    for i in data:
+        customer = Customer(name=i['customerName'], acreage=i['irrigatableArea'])
+        customer.set_acc_party(acc_party=i['customerNumber'])
+        customer.set_allowance(allowance=calculate_budget(i['irrigatableArea']))
+        customer.set_meters(meters=i['meters'])
+        customer.set_usage(usage=query_mdm_intervals(customer.get_acc_party(), date))
+        customers.append(customer)
 
-    for index, row in customers.iterrows():
-        customer = Customer(name=row['name'], acreage=row['acres'])
-        customer.set_acc_party(acc_party=row['acc_party'])
-        customer.set_allowance(allowance=calculate_budget(row['acres']))
+    for customer in customers:
+        print(customer.name)
+        print(customer.allowance, 'kgals')
+        print(customer.usage)
 
-        customer.set_meters(pd.read_sql(odm_query, odm_engine))
+# Deliverables?
+# Can we just have the query return a sum of usage between the dates
+# what happens if its not equitable
+#
