@@ -16,40 +16,62 @@ To perform both objectives, we will need to first develop the approach for asses
 ### Terms and Definitions
 
 **Analysis period:**  
-The analysis period is the span of time for each given analysis. This period must be comprised of one or more complete Monday-to-Monday weeks.
+The analysis period is the span of time for each given analysis. This period must be comprised of one or more week periods.
 
-### Water budget calculation
+**Week period:**
+Each analysis period is made oup of one or more week periods, comprised of seven day periods and using a Monday-Monday week structure.
+
+**Day period:**
+Each day period is a twenty-four hour period from 00:00:00 - 24:00:00.
+
+**Drought contingency modifiers and reference table:**
+
+The irrigation coverage depth, $i$, is introduced via lookup from the Drought Contingency Plan (DCP) reference table:
+
+|DCP Argument|Irrigation Depth|No Water Window Min| No Water Window Max|
+|------------|----------------|-------------------|--------------------|
+|           0|               1|               null|                null|
+|           1|            0.75|               0900|                2000|
+|           2|             0.5|               0700|                1900|
+|           3|               0|               0000|                2400|
+|           4|               0|               0000|                2400|
+
+In addition, the No Water Window Min and No Water Window Max values are used to assess watering window violations.
+
+**Irrigation Meter**
+The currently active meter assigned to an active contract with the `Irrigation` product type in UMAX.
+
+**Domestic Meter**
+Any active meters assigned to active contracts with a billing classification of `Water` and a product other than `Irrigation`.
+
+## Violations
+
+### Monday watering violation
+
+Any week period in the given analysis period where a customer's irrigation meter(s) register > 0 gallons in an interval whose date is a Monday will be flagged for a Monday Watering Violation
+
+### Water budget calculation and violation
 
 Water budgets will be calculated by taking as argument the acreage of irrigatable land for a given customer and calculating a weekly allowance based on 1" of irrigation over the totality of that acreage.
 
-Where $b$ is the weekly water budget, $a$ is the acreage of irrigatable land, and $c$ is the applicable drought contingency modifier:
+Where $b$ is the weekly water budget,   
+$a$ is the square feet of irrigatable land,  
+$i$ is the irrigation coverage depth in feet,  
+$\gamma$ a constant of 7.48 gallons per cubic foot
 
 $$
-b = a * 43560 * 0.83 * 7.48 / 1000 * c
+b = a * i * \gamma / 1000
 $$
 
-In this calculation, $a$ is first converted from acreage to square feet by multiplying the variable by 43,560. Then, the volume in cubic feet is calcuated by further multiplying this product by 0.83 (1" converted into feet). The number of gallons is then calculated using the value 7.48 (the number of gallons in a cubic foot). Finally, the product is converted into kgals by dividing by 1000.
-
-Further calculation is needed to account for Drought Contingency $c$
+In this calculation, $a$ is multiplied by $i$ to calculate a volume in cubic feet. $i$ is determined from the DCP reference table. The volume in cubic feet is then converted to gallons by multiplying by the constant $\gamma$. Finally, the product is converted into kgals by dividing by 1000.
 
 This value becomes the weekly water budget for the customer during subsequent analysis.
 
-### Drought contingency modifier
+In a given analysis period, in a given week period within that analysis period, if the customer's weekly sum of consumption between irrigation and domestic meters is greater than $b$, that week is flagged with a budget overage violation.
 
-The drought contingency modifier is introduced as an argument in the program based on the following table:
+### Watering window violation
 
-
-### Irrigation violation calculation
-
-There are two main types of irrigation violation to be considered:  
-
-#### Monday watering violation
-
-Monday watering violations are determined by checking the hourly interval reads of any irrigation meter associated with the account and checking for consumption on any Monday in the analysis period. If a violation is found, then the account is considered to have one wrong-day watering violation for each Monday with watering in the analysis period.
-
-#### Budget overage violation
-
-The resultant water budget $b$ is then compared to the sum of water consumption of all meters for the customer/property in the analysis period. If the sum of all volumes for each week in the analysis period exceeds the value $b$, then the customer is considered to have a budget overage violation for each such exceedance.
+For each interval read in each day period in the analysis period, if the interval hour is between the No Water Min and No Water Max hours for the selected DCP stage from the DCP reference table, then watering window violation is flagged.
 
 ## Equitability
 
@@ -59,9 +81,9 @@ Further experimentation will be done to compare a statistically significant set 
 
 ## Software
 
-## Questions
+The water_budget.py program is written in Python 3.12
 
-- Should we be including "commercial" meters such as clubhouse and pool meters?
+## Questions
 - Should we use sum of all meters or only the irrigation meters?
     - Need to test both options to see how they perform.
     - Sum of both meters is necessary to infer the correct drought contingency value per Chelsea.
