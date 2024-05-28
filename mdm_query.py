@@ -30,4 +30,4 @@ def query_mdm_intervals(meter_id, date, acc_num):
 
     odm_engine = create_engine(odm)
 
-    data = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    return pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
