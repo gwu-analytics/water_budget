@@ -62,9 +62,10 @@ if __name__ == "__main__":
 
             customer.add_meter(current_meter_obj=meter_obj)
             customer.add_usage(meter_data.ReadValue.sum())
-            # Convert dates to weekdays only, filter for Mondays and any value exists
+
+            customer.mon_viol = monday_violations(meter_data)
             if dcp in range(1, 2):
-                customer.mid_viol = midday_violations(meter_data)
+                customer.mid_viol = midday_violations(meter_data, dcp)
             elif dcp >= 3:
                 customer.irrig_viol = irrigation_violations(meter_data)
 
@@ -80,6 +81,9 @@ if __name__ == "__main__":
         print('Generated data for', customer.name)
         print('Budget violations:', customer.bug_viol)
         print('Irrigation violations:', customer.irrig_viol)
+        print('Mid-day violations:', customer.mid_viol)
+        print('Monday violations:', customer.mon_viol)
+        print('Customer Budget:', customer.allowance)
         print('Customer Usage:', customer.usage)
         print('=' * 50)
         """

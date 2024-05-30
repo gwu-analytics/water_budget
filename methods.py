@@ -27,7 +27,7 @@ def query_mdm_intervals(meter_id, date, acc_num):
 			AND
 				MeterIdentifier = :meter_id
             AND
-                ReadDate BETWEEN :date AND DATEADD(DAY, 7, :date)
+                ReadDate BETWEEN :date AND DATEADD(DAY, 6, :date)
     """)
 
     odm_engine = create_engine(odm)
@@ -37,11 +37,11 @@ def query_mdm_intervals(meter_id, date, acc_num):
 
 def calculate_budget(acres, dcp_num):
     if dcp_num == 0:
-        return (acres * 1 * 7.48) / 1000
+        return (acres * 1/12 * 7.48) / 1000
     elif dcp_num == 1:
-        return (acres * 0.75 * 7.48 * dcp_num) / 1000
+        return (acres * 0.75/12 * 7.48 * dcp_num) / 1000
     elif dcp_num == 2:
-        return (acres * 0.5 * 7.48 * dcp_num) / 1000
+        return (acres * 0.5/12 * 7.48 * dcp_num) / 1000
     else:
         return 1
 
@@ -51,7 +51,8 @@ def calculate_monday(date):
     return pd.Timestamp(date) - pd.Timedelta(days=pd.Timestamp(date).dayofweek)
 
 
-def irrigation_violations(df):
+def irrigation_violations(df)
+    # make copy
     df.ReadDate = pd.to_datetime(df.ReadDate).dt.date
     df = df.groupby('ReadDate')['ReadValue'].sum().reset_index()
     return len(df[df.ReadValue > 0].index)
@@ -69,6 +70,14 @@ def midday_violations(df, dcp):
     midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate).dt.date
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
     return len(midday_df[midday_df.ReadValue > 0].index)
+
+
+def monday_violations(df):
+    #df.ReadDate = pd.to_datetime(df.ReadDate).dt.day_name()
+    #monday_df = df.groupby('ReadDate')['ReadValue'].sum().reset_index()
+    return len(df[(pd.to_datetime(df.ReadDate).dt.day_name() == 'Monday') & (df.ReadValue > 0)])
+
+
 
 def file_explorer():
     root = tk.Tk()
