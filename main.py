@@ -29,9 +29,9 @@ if __name__ == "__main__":
     while cust_choice != '1' and cust_choice != '2':
         cust_choice = input(' > Enter only a 1 or 2, please:')
     if cust_choice == '2':
-        cust_choice = input('- Enter the account number for your customer: ')
-        while len(cust_choice) != 8:
-            cust_choice = input('- Number must be 8 characters long: ')
+        cust_acc = int(input('- Enter the account number for your customer: '))
+        data = data[data.CustomerNumber == cust_acc]
+        print(len(data))
 
     dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
     while dcp not in range(5):
@@ -41,6 +41,7 @@ if __name__ == "__main__":
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
+        print('Creating customer object...')
         customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea)
         customer.set_acc_party(acc_party=row.CustomerNumber)
         customer.set_allowance(allowance=calculate_budget(row.IrrigatableArea, dcp))
@@ -48,8 +49,12 @@ if __name__ == "__main__":
         # [WATER] Query usage data, return hourly reads, count violations
         water_meters = row.WaterMeters.split(', ')
         for meter in water_meters:
+            print('Creating water meter object...')
+            print(meter, date, customer.get_acc_party())
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
+            print('Query returned')
             meter_obj = Meter(meter, 'water', meter_data)
+            print('Created water meter object')
 
             customer.add_meter(current_meter_obj=meter_obj)
             customer.add_usage(meter_data.ReadValue.sum())
@@ -57,6 +62,7 @@ if __name__ == "__main__":
         # [IRRIGATION] Query usage data, return hourly reads, count violations
         irrig_meters = row.IrrigationMeters.split(', ')
         for meter in irrig_meters:
+            print('Creating irrigation meter object...')
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
             meter_obj = Meter(meter, 'water', meter_data)
 
@@ -70,90 +76,118 @@ if __name__ == "__main__":
                 customer.irrig_viol = irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
-        if customer.usage > customer.allowance:
+        if customer.usage > customer.allowance and dcp < 3:
             customer.bug_viol = 1
 
         # Parsing reads and counting number of violations by type
         customers.append(customer)
 
-    # Create workbook
-    wb = Workbook()
-    ws = wb.active
+    if cust_choice == '1':
+        print('customer choice 1')
 
-    # Manually set column widths of output file
-    ws.column_dimensions['A'].width = 30
-    ws.column_dimensions['B'].width = 20
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 20
-    ws.column_dimensions['E'].width = 20
-    ws.column_dimensions['F'].width = 20
-    ws.column_dimensions['G'].width = 20
-    ws.column_dimensions['H'].width = 18
-    ws.column_dimensions['J'].width = 18
-    ws.column_dimensions['L'].width = 10
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
 
-    # Manually set column names,
-    ws.cell(row=1, column=1).value = 'Customer Name'
-    ws.cell(row=1, column=1).border = thin_border
-    ws.cell(row=1, column=1).font = bold_font
-    ws.cell(row=1, column=2).value = 'Customer Number'
-    ws.cell(row=1, column=2).border = thin_border
-    ws.cell(row=1, column=2).font = bold_font
-    ws.cell(row=1, column=3).value = 'Budget Violation'
-    ws.cell(row=1, column=3).border = thin_border
-    ws.cell(row=1, column=3).font = bold_font
-    ws.cell(row=1, column=4).value = 'Irrigation Violations'
-    ws.cell(row=1, column=4).border = thin_border
-    ws.cell(row=1, column=4).font = bold_font
-    ws.cell(row=1, column=5).value = 'Mid-day Violations'
-    ws.cell(row=1, column=5).border = thin_border
-    ws.cell(row=1, column=5).font = bold_font
-    ws.cell(row=1, column=6).value = 'Monday Violations'
-    ws.cell(row=1, column=6).border = thin_border
-    ws.cell(row=1, column=6).font = bold_font
-    ws.cell(row=1, column=7).value = 'Customer Budget'
-    ws.cell(row=1, column=7).border = thin_border
-    ws.cell(row=1, column=7).font = bold_font
-    ws.cell(row=1, column=8).value = 'Customer Usage'
-    ws.cell(row=1, column=8).border = thin_border
-    ws.cell(row=1, column=8).font = bold_font
-    ws['J1'] = 'Week Of'
-    ws['J1'].border = thin_border
-    ws['J1'].font = bold_font
-    ws['J2'] = date
-    ws['L1'] = 'DCP Stage'
-    ws['L1'].border = thin_border
-    ws['L1'].font = bold_font
-    ws['L2'] = dcp
+        # Manually set column widths of output file
+        ws.column_dimensions['A'].width = 30
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 20
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 20
+        ws.column_dimensions['F'].width = 20
+        ws.column_dimensions['G'].width = 20
+        ws.column_dimensions['H'].width = 18
+        ws.column_dimensions['J'].width = 18
+        ws.column_dimensions['L'].width = 10
 
-    print('=' * 50)
-    for i, customer in enumerate(customers):
-        print('Generated data for', customer.name)
-        if dcp < 3:
-            print('Budget violations:', customer.bug_viol)
-            print('Irrigation violations: N/A')
-        else:
-            print('Budget violations: N/A')
-            print('Irrigation violations:', customer.irrig_viol)
-        print('Mid-day violations:', customer.mid_viol)
-        print('Monday violations:', customer.mon_viol)
-        print('Customer Budget:', customer.allowance)
-        print('Customer Usage:', customer.usage)
+        # Manually set column names,
+        ws.cell(row=1, column=1).value = 'Customer Name'
+        ws.cell(row=1, column=1).border = thin_border
+        ws.cell(row=1, column=1).font = bold_font
+        ws.cell(row=1, column=2).value = 'Customer Number'
+        ws.cell(row=1, column=2).border = thin_border
+        ws.cell(row=1, column=2).font = bold_font
+        ws.cell(row=1, column=3).value = 'Budget Violation'
+        ws.cell(row=1, column=3).border = thin_border
+        ws.cell(row=1, column=3).font = bold_font
+        ws.cell(row=1, column=4).value = 'Irrigation Violations'
+        ws.cell(row=1, column=4).border = thin_border
+        ws.cell(row=1, column=4).font = bold_font
+        ws.cell(row=1, column=5).value = 'Mid-day Violations'
+        ws.cell(row=1, column=5).border = thin_border
+        ws.cell(row=1, column=5).font = bold_font
+        ws.cell(row=1, column=6).value = 'Monday Violations'
+        ws.cell(row=1, column=6).border = thin_border
+        ws.cell(row=1, column=6).font = bold_font
+        ws.cell(row=1, column=7).value = 'Customer Budget'
+        ws.cell(row=1, column=7).border = thin_border
+        ws.cell(row=1, column=7).font = bold_font
+        ws.cell(row=1, column=8).value = 'Customer Usage'
+        ws.cell(row=1, column=8).border = thin_border
+        ws.cell(row=1, column=8).font = bold_font
+        ws['J1'] = 'Week Of'
+        ws['J1'].border = thin_border
+        ws['J1'].font = bold_font
+        ws['J2'] = date
+        ws['L1'] = 'DCP Stage'
+        ws['L1'].border = thin_border
+        ws['L1'].font = bold_font
+        ws['L2'] = dcp
+
         print('=' * 50)
+        for i, customer in enumerate(customers):
+            print('Generated data for', customer.name)
+            if dcp < 3:
+                print('Budget violations:', customer.bug_viol)
+                print('Irrigation violations: N/A')
+            else:
+                print('Budget violations: N/A')
+                print('Irrigation violations:', customer.irrig_viol)
+            print('Mid-day violations:', customer.mid_viol)
+            print('Monday violations:', customer.mon_viol)
+            print('Customer Budget:', customer.allowance)
+            print('Customer Usage:', customer.usage)
+            print('=' * 50)
 
-        ws.cell(row=i + 2, column=1).value = customer.name
-        ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
-        ws.cell(row=i + 2, column=3).value = customer.bug_viol
-        ws.cell(row=i + 2, column=4).value = customer.irrig_viol
-        ws.cell(row=i + 2, column=5).value = customer.mid_viol
-        ws.cell(row=i + 2, column=6).value = customer.mon_viol
-        ws.cell(row=i + 2, column=7).value = customer.allowance
-        ws.cell(row=i + 2, column=8).value = customer.usage
+            ws.cell(row=i + 2, column=1).value = customer.name
+            ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
+            ws.cell(row=i + 2, column=3).value = customer.bug_viol
+            ws.cell(row=i + 2, column=4).value = customer.irrig_viol
+            ws.cell(row=i + 2, column=5).value = customer.mid_viol
+            ws.cell(row=i + 2, column=6).value = customer.mon_viol
+            ws.cell(row=i + 2, column=7).value = customer.allowance
+            ws.cell(row=i + 2, column=8).value = customer.usage
 
-    while True:
-        try:
-            wb.save('output.xlsx')
-            break
-        except PermissionError:
-            print('Please save output file if file is already open! Please close file now.')
-            print('Attempting to save output file...')
+        while True:
+            try:
+                wb.save('output.xlsx')
+                break
+            except PermissionError:
+                print('Please save output file if file is already open! Please close file now.')
+                print('Attempting to save output file...')
+
+    if cust_choice == '2':
+        print('Customer Choice 2')
+
+        wb = Workbook()
+        ws = wb.active
+
+        if len(customers) == 0:
+            print('Failed to locate customer! Ensure account number is correct.')
+
+        for customer in customers:
+            print('Customer', customer.name)
+            for i, meter in enumerate(customer.meters):
+                print("Meter", meter.type)
+                ws = wb.create_sheet(meter.type, i)
+
+                meter.meter_data['day'] = meter.meter_data['ReadDate']
+                meter.meter_data['day'] = pd.to_datetime(meter.meter_data['day']).dt.day_name()
+
+                for j, row in meter.meter_data.iterrows():
+                    ws.cell(row=row.ReadDate.hour, column=row.ReadDate.weekday*2).value = row.ReadValue
+
+        wb.save('single_output.xlsx')
+
+

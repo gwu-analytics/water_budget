@@ -18,8 +18,7 @@ def query_mdm_intervals(meter_id, date, acc_num):
     odm_1 = text("""
         SELECT 
                 ReadValue,
-				ReadDate, 
-				MeterIdentifier
+				ReadDate
             FROM
                 ODM.IntervalReads
             WHERE
@@ -27,12 +26,18 @@ def query_mdm_intervals(meter_id, date, acc_num):
 			AND
 				MeterIdentifier = :meter_id
             AND
-                ReadDate BETWEEN :date AND DATEADD(DAY, 6, :date)
+                ReadDate >= :date 
+            AND 
+                ReadDate < DATEADD(DAY, 7, :date)
     """)
 
     odm_engine = create_engine(odm)
-
-    return pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    print('Reading SQL query...')
+    dataframe = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    print('Grabbed query')
+    odm_engine.dispose()
+    print('Disposed of engine')
+    return dataframe
 
 
 def calculate_budget(acres, dcp_num):
