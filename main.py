@@ -3,7 +3,7 @@ from openpyxl import Workbook
 from methods import *
 from customer import Customer
 from meter import Meter
-
+from formatting import *
 
 if __name__ == "__main__":
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             cust_choice = input('- Number must be 8 characters long: ')
 
     dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
-    while dcp not in range(0, 4):
+    while dcp not in range(5):
         dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
 
     print('Thank you! Please hold while we generate your data.')
@@ -76,22 +76,84 @@ if __name__ == "__main__":
         # Parsing reads and counting number of violations by type
         customers.append(customer)
 
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+
+    # Manually set column widths of output file
+    ws.column_dimensions['A'].width = 30
+    ws.column_dimensions['B'].width = 20
+    ws.column_dimensions['C'].width = 20
+    ws.column_dimensions['D'].width = 20
+    ws.column_dimensions['E'].width = 20
+    ws.column_dimensions['F'].width = 20
+    ws.column_dimensions['G'].width = 20
+    ws.column_dimensions['H'].width = 18
+    ws.column_dimensions['J'].width = 18
+    ws.column_dimensions['L'].width = 10
+
+    # Manually set column names,
+    ws.cell(row=1, column=1).value = 'Customer Name'
+    ws.cell(row=1, column=1).border = thin_border
+    ws.cell(row=1, column=1).font = bold_font
+    ws.cell(row=1, column=2).value = 'Customer Number'
+    ws.cell(row=1, column=2).border = thin_border
+    ws.cell(row=1, column=2).font = bold_font
+    ws.cell(row=1, column=3).value = 'Budget Violation'
+    ws.cell(row=1, column=3).border = thin_border
+    ws.cell(row=1, column=3).font = bold_font
+    ws.cell(row=1, column=4).value = 'Irrigation Violations'
+    ws.cell(row=1, column=4).border = thin_border
+    ws.cell(row=1, column=4).font = bold_font
+    ws.cell(row=1, column=5).value = 'Mid-day Violations'
+    ws.cell(row=1, column=5).border = thin_border
+    ws.cell(row=1, column=5).font = bold_font
+    ws.cell(row=1, column=6).value = 'Monday Violations'
+    ws.cell(row=1, column=6).border = thin_border
+    ws.cell(row=1, column=6).font = bold_font
+    ws.cell(row=1, column=7).value = 'Customer Budget'
+    ws.cell(row=1, column=7).border = thin_border
+    ws.cell(row=1, column=7).font = bold_font
+    ws.cell(row=1, column=8).value = 'Customer Usage'
+    ws.cell(row=1, column=8).border = thin_border
+    ws.cell(row=1, column=8).font = bold_font
+    ws['J1'] = 'Week Of'
+    ws['J1'].border = thin_border
+    ws['J1'].font = bold_font
+    ws['J2'] = date
+    ws['L1'] = 'DCP Stage'
+    ws['L1'].border = thin_border
+    ws['L1'].font = bold_font
+    ws['L2'] = dcp
+
     print('=' * 50)
-    for customer in customers:
+    for i, customer in enumerate(customers):
         print('Generated data for', customer.name)
-        print('Budget violations:', customer.bug_viol)
-        print('Irrigation violations:', customer.irrig_viol)
+        if dcp < 3:
+            print('Budget violations:', customer.bug_viol)
+            print('Irrigation violations: N/A')
+        else:
+            print('Budget violations: N/A')
+            print('Irrigation violations:', customer.irrig_viol)
         print('Mid-day violations:', customer.mid_viol)
         print('Monday violations:', customer.mon_viol)
         print('Customer Budget:', customer.allowance)
         print('Customer Usage:', customer.usage)
         print('=' * 50)
-        """
-        wb = Workbook()
-        ws = wb.active
-        ws.title = 'Summary'
-        ws['A1'] = 'Summary'
-        ws['A2'] = 'Week of ' + date
-        ws['A3'] = customer.bug_viol
-        ws['A4'] = customer.irrig_viol
-        """
+
+        ws.cell(row=i + 2, column=1).value = customer.name
+        ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
+        ws.cell(row=i + 2, column=3).value = customer.bug_viol
+        ws.cell(row=i + 2, column=4).value = customer.irrig_viol
+        ws.cell(row=i + 2, column=5).value = customer.mid_viol
+        ws.cell(row=i + 2, column=6).value = customer.mon_viol
+        ws.cell(row=i + 2, column=7).value = customer.allowance
+        ws.cell(row=i + 2, column=8).value = customer.usage
+
+    while True:
+        try:
+            wb.save('output.xlsx')
+            break
+        except PermissionError:
+            print('Please save output file if file is already open! Please close file now.')
+            print('Attempting to save output file...')
