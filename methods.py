@@ -26,17 +26,12 @@ def query_mdm_intervals(meter_id, date, acc_num):
 			AND
 				MeterIdentifier = :meter_id
             AND
-                ReadDate >= :date 
-            AND 
-                ReadDate < DATEADD(DAY, 7, :date)
+                ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
     """)
 
     odm_engine = create_engine(odm)
-    print('Reading SQL query...')
     dataframe = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
-    print('Grabbed query')
     odm_engine.dispose()
-    print('Disposed of engine')
     return dataframe
 
 
@@ -48,18 +43,23 @@ def calculate_budget(acres, dcp_num):
     elif dcp_num == 2:
         return (acres * (0.5 / 12) * 7.48 * dcp_num) / 1000
     else:
-        return 1
+        return 0
 
 
 # Returns most recent Monday prior to date entered (returns same date if already Monday)
 def calculate_monday(date):
-    return pd.Timestamp(date) - pd.Timedelta(days=pd.Timestamp(date).dayofweek)
+    # Returning datetime or timestamp object causes query to run indefinitely, so return as str
+    return str(pd.Timestamp(date) - pd.Timedelta(days=pd.Timestamp(date).dayofweek))
 
 
 def irrigation_violations(df):
+    # Create a deep copy of the dataframe to prevent any modifications to the original
     irr_df = df.copy(deep=True)
+    # Strip all times from the datetimes - we want only dates
     irr_df.ReadDate = pd.to_datetime(irr_df.ReadDate).dt.date
+    # Group all reads by their date, and sum all 24 ReadValue values for each of the 7 days of week
     irr_df = irr_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
+    # If the irrigation meter displays any non-zero reads at any point, return the number of days in violation
     return len(irr_df[irr_df.ReadValue > 0].index)
 
 
