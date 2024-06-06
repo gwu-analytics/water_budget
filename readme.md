@@ -31,10 +31,10 @@ The irrigation coverage depth, $i$, is introduced via lookup from the Drought Co
 |DCP Argument|Irrigation Depth|No Water Window Min| No Water Window Max|
 |------------|----------------|-------------------|--------------------|
 |           0|               1|               null|                null|
-|           1|            0.75|               0900|                2000|
+|           1|            0.75|               0900|                1900|
 |           2|             0.5|               0700|                1900|
 |           3|               0|               0000|                2400|
-|           4|               0|               0000|                2400|
+|           4|               0|               null|                null|
 
 In addition, the No Water Window Min and No Water Window Max values are used to assess watering window violations.
 
