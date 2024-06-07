@@ -9,3 +9,8 @@ thin_border = Border(
 
 bold_font = Font(bold=True)
 
+gray_fill = PatternFill(start_color='D2D2D2', fill_type='solid')
+
+orange_fill = PatternFill(start_color='FFC163', fill_type='solid')
+
+large_font = Font(size=40, bold=True)

@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     print('=' * 50)
     print('Master-Metered Community Violation Application\nWater Analytics 2024')
-    print('=' * 50 + '\n- Select your data file.\n')
+    print('=' * 50 + '\n- Select your data file.')
 
     # Display file explorer, get data file, convert meter lists to str
     file_selected = file_explorer()
@@ -34,13 +34,12 @@ if __name__ == "__main__":
     if cust_choice == '2':
         cust_acc = int(input('- Enter the account number for your customer: '))
         data = data[data.CustomerNumber == cust_acc]
-        print(len(data))
 
     dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
     while dcp not in range(5):
         dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
 
-    print('Thank you! Please hold while we generate your data.')
+    print('Thank you! Please hold...')
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
@@ -52,9 +51,9 @@ if __name__ == "__main__":
         # [WATER] Query usage data, return hourly reads, count violations
         water_meters = row.WaterMeters.split(', ')
         for meter in water_meters:
-            print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
+            #print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
-            meter_obj = Meter(meter, 'Water', meter_data)
+            meter_obj = Meter(meter, 'Domestic', meter_data)
 
             customer.add_meter(current_meter_obj=meter_obj)
             customer.add_usage(meter_data.ReadValue.sum())
@@ -62,7 +61,7 @@ if __name__ == "__main__":
         # [IRRIGATION] Query usage data, return hourly reads, count violations
         irrig_meters = row.IrrigationMeters.split(', ')
         for meter in irrig_meters:
-            print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
+            #print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
             meter_obj = Meter(meter, 'Irrigation', meter_data)
 
@@ -70,7 +69,7 @@ if __name__ == "__main__":
             customer.add_usage(meter_data.ReadValue.sum())
 
             customer.mon_viol = monday_violations(meter_data)
-            if dcp in range(1, 2):
+            if dcp < 3:
                 customer.mid_viol = midday_violations(meter_data, dcp)
             elif dcp >= 3:
                 customer.irrig_viol = irrigation_violations(meter_data)
@@ -162,7 +161,6 @@ if __name__ == "__main__":
             print('Failed to locate customer! Ensure account number is correct.')
 
         for customer in customers:
-            print('Customer', customer.name)
             for i, meter in enumerate(customer.meters):
                 ws = wb.create_sheet(meter.type, i+1)
 
@@ -184,10 +182,23 @@ if __name__ == "__main__":
                 ws['H1'] = 'Sun'
                 ws['H1'].font, ws['H1'].border = bold_font, thin_border
 
-                ws['A2'] = '12:00 AM'
-                ws['A7'] = '6:00 AM'
-                ws['A13'] = '12:00 PM'
-                ws['A19'] = '6:00 PM'
+                ws['A2'], ws['A3'], ws['A4'], ws['A5'] = '12:00 AM', '1:00 AM', '2:00 AM', '3:00 AM'
+                ws['A6'], ws['A7'], ws['A8'], ws['A9']  = '4:00 AM', '5:00 AM', '6:00 AM', '7:00 AM'
+                ws['A10'], ws['A11'], ws['A12'], ws['A13'] = '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'
+                ws['A14'], ws['A15'], ws['A16'], ws['A17'] = '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'
+                ws['A18'], ws['A19'], ws['A20'], ws['A21'] = '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'
+                ws['A22'], ws['A23'], ws['A24'], ws['A25'] = '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM'
+
+                # Make start and end times for mid-day schedule gray
+                if meter.type == 'Irrigation':
+                    for k in range(1, 9):
+                        ws.cell(row=21, column=k).fill = gray_fill
+                        if dcp == 1:
+                            ws.cell(row=11, column=k).fill = gray_fill
+                        elif dcp == 2:
+                            ws.cell(row=9, column=k).fill = gray_fill
+                    for l in range(2, 26):
+                        ws.cell(row=l, column=2).fill = orange_fill
 
                 ws['K1'] = 'Meter'
                 ws['K1'].font, ws['K1'].border = bold_font, thin_border
@@ -199,14 +210,14 @@ if __name__ == "__main__":
                 ws['M1'].font, ws['M1'].border = bold_font, thin_border
                 ws['M2'] = meter.data['ReadValue'].sum()
 
-                ws['K9'] = 'Bold text indicates where a violation occurred'
+                ws['K9'] = 'Bold text indicates where an irrigation violation occurred'
+                ws['K10'] = 'Gray cells mark the prohibited mid-day watering window'
 
                 for j, row in meter.data.iterrows():
                     ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).value = row.ReadValue
 
                     if dcp >= 3 and row.ReadValue > 0 and meter.type == 'Irrigation':
                         ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).font = bold_font
-                    elif dcp < 3
 
         wb.save('output.xlsx')
 

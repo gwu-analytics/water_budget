@@ -66,16 +66,17 @@ def irrigation_violations(df):
 def midday_violations(df, dcp):
     if dcp == 1:
         start = pd.to_datetime('09:00:00').time()
-        end = pd.to_datetime('20:00:00').time()
+        end = pd.to_datetime('19:00:00').time()
     elif dcp == 2:
         start = pd.to_datetime('07:00:00').time()
-        end = pd.to_datetime('12:00:00').time()
-    midday_df = df.copy(deep=True)
+        end = pd.to_datetime('19:00:00').time()
+    midday_df = df.copy()
     midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate)
     midday_df = midday_df[(midday_df.ReadDate.dt.time >= start) & (midday_df.ReadDate.dt.time <= end)]
-    midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate).dt.date
+    midday_df.ReadDate = midday_df.ReadDate.dt.date
+    # Group all values by day and sum of all day reads
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
-    return len(midday_df[midday_df.ReadValue > 0].index)
+    return len(midday_df[midday_df.ReadValue > 0])
 
 
 def monday_violations(df):
