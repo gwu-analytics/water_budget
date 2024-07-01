@@ -15,28 +15,17 @@ def main(call_type=0):
         data.WaterMeters = data.WaterMeters.astype(str)
         data.IrrigationMeters = data.IrrigationMeters.astype(str)
         return data
+
     
-    # def get_add_date(call_type):
-    #     if call_type == 1:
-    #         while True:
-    #             try:
-    #                 date = input('- Enter target date like YYYY-MM-DD: ')
-    #             except ValueError:
-    #                 print('Date format is YYYY-MM-DD.')
-    #     else:
-    #        date = date.today()
-    #        date = date.timedelta(weeks=-1)
-
-    #     datetime.date.fromisoformat(date)
-    #     date = str(calculate_monday(date))
-
-
-
-
     if call_type == 1:
         print('=' * 50)
         print('Master-Metered Community Violation Application\nWater Analytics 2024')
-        print('=' * 50 + '\n- Select your data file.')
+        print('=' * 50)
+
+        check_for_config()
+
+        # Setup job
+        print('\n- Select your data file.')
 
         # Display file explorer, get data file, convert meter lists to str
         file_selected = file_explorer()
@@ -67,9 +56,10 @@ def main(call_type=0):
         print('Thank you! Please hold...')
     
     else:
+        config_data = read_config()
         #TODO: build config handler
         # Read pre-defined data file into df
-        target_file = './water_budget/sample_book.xlsx' #TODO: change to dynamic file selection from config
+        target_file = config_data['data_path'] #TODO: change to dynamic file selection from config
 
         # Instantiate data df
         data = init_df(target_file)
@@ -84,7 +74,7 @@ def main(call_type=0):
         cust_choice = 1
 
         # Instantiate dcp
-        dcp = 2 #TODO: read in from config
+        dcp = int(config_data['dcp_value']) #TODO: read in from config
 
 
 
@@ -270,4 +260,5 @@ def main(call_type=0):
 
 
 if __name__ == "__main__":
-    main()
+    context = check_execution_context()
+    main(context)

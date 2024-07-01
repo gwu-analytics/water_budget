@@ -1,8 +1,103 @@
 import pyodbc
+import setup
+import os
+import configparser
 from sqlalchemy import create_engine, text
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
+
+
+def check_for_config():
+    if os.path.isfile('config.ini') == True:
+        print('Detected "config.ini" file...')
+    else:
+        print('No "config.ini" file found, running setup.')
+        setup.setup()
+
+
+def check_execution_context():
+    # Check if a specific environment variable set by Task Scheduler exists
+    if 'USERNAME' in os.environ and os.environ['USERNAME'] == 'SYSTEM':
+        return 0
+    else:
+        return 1
+
+
+def create_config():
+    # Create ConfigParser object
+    config = configparser.ConfigParser()
+    
+    # Request target file
+    print('Select data file...')
+    target_file = file_explorer()
+
+    # Request metadata
+    dcp = int(input('Enter current DCP stage, from 0 to 4: '))
+    while dcp not in range (5):
+        dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
+
+    # Request output dir
+    print('Select output directory...')
+    output_dir = select_directory()
+
+    # Build config file
+    config['General'] = {'debug': True, 'log_level': 'info'}
+    config['Meta'] = {'dcp': f'{dcp}'}
+    config['Data'] = {'data_file': target_file}
+    config['Output'] = {'output_path': output_dir}
+
+    # Write to file
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
+
+
+def update_dcp():
+    # Create ConfigParser object
+    config = configparser.ConfigParser()
+
+    # Read config file
+    config.read('config.ini')
+
+    # Elicit DCP value
+    print(f'Current DCP stage: {config.get('Meta', 'dcp')}')
+    dcp = int(input('Enter current DCP stage, from 0 to 4: '))
+    while dcp not in range (5):
+        dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
+
+    # Modify dcp
+    config.set('Meta', 'dcp', dcp)
+
+    # Write to config
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
+
+
+def read_config():
+    # Create ConfigParser object
+    config = configparser.ConfigParser()
+
+    # Read config file
+    config.read('config.ini')
+
+    # Access values from config
+    debug_mode = config.getboolean('General', 'debug')
+    log_level = config.get('General', 'log_level')
+    data_path = config.get('Data', 'data_file')
+    dcp_value = config.get('Meta', 'dcp')
+    output_path = config.get('Output', 'output_path')
+
+    # Construct a dictionary with retreived values
+    config_values = {
+        'debug_mode': debug_mode,
+        'log_level': log_level,
+        'data_path': data_path,
+        'dcp_value': dcp_value,
+        'output_path': output_path
+    }
+
+    # Return the dict to the calling function
+    return config_values
 
 
 def query_mdm_intervals(meter_id, date, acc_num):
@@ -90,4 +185,16 @@ def monday_violations(df):
 def file_explorer():
     root = tk.Tk()
     root.withdraw()
-    return filedialog.askopenfilename()
+    root.attributes('-topmost', True)
+    filepath = filedialog.askopenfilename()
+    root.destroy()
+    return filepath
+
+
+def select_directory():
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    directory = filedialog.askdirectory(title='Select Output Directory')
+    root.destroy()
+    return directory
