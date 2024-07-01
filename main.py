@@ -6,48 +6,79 @@ from customer import Customer
 from meter import Meter
 from formatting import *
 
-if __name__ == "__main__":
 
-    #print('=' * 50)
-    #print('Master-Metered Community Violation Application\nWater Analytics 2024')
-    #print('=' * 50 + '\n- Select your data file.')
+def main(call_type=0):
 
-    # Display file explorer, get data file, convert meter lists to str
-    file_selected = file_explorer()
-    data = pd.read_excel(file_selected)
-    while True:
-        try:
-            data.WaterMeters = data.WaterMeters.astype(str)
-            data.IrrigationMeters = data.IrrigationMeters.astype(str)
-            break
-        except AttributeError:
-            print('You selected the incorrect file. Please try again.')
-            file_selected = file_explorer()
-            data = pd.read_excel(file_selected)
 
-    # ONLY IF single report TRUE
-    # Collect target date from user, check for correct format.
-    while True:
-        try:
-            date = input('- Enter target date like YYYY-MM-DD: ')
-            datetime.date.fromisoformat(date)
-            break
-        except ValueError:
-            print('Date format is YYYY-MM-DD.')
-    # Grab closest prior Monday
-    date = str(calculate_monday(date))
+    # Sub functions
+    def init_df(file):
+        data = pd.read_excel(file)
+        data.WaterMeters = data.WaterMeters.astype(str)
+        data.IrrigationMeters = data.IrrigationMeters.astype(str)
+        return data
 
-    # take from input file?
-    cust_choice = input('- Enter 1 for a full report, or 2 for a single customer report: ')
-    while cust_choice != '1' and cust_choice != '2':
-        cust_choice = input(' > Enter only a 1 or 2, please:')
-    if cust_choice == '2':
-        cust_acc = int(input('- Enter the account number for your customer: '))
-        data = data[data.CustomerNumber == cust_acc]
+    
+    if call_type == 1:
 
-    dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
-    while dcp not in range(5):
-        dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
+        print('=' * 50)
+        print('Master-Metered Community Violation Application\nWater Analytics 2024')
+        print('=' * 50)
+
+        check_for_config()
+
+        # Setup job
+        print('\n- Select your data file.')
+
+        # Display file explorer, get data file, convert meter lists to str
+        file_selected = file_explorer()
+        data = init_df(file_selected)
+
+        # Collect target date from user, check for correct format.
+        while True:
+            try:
+                date = input('- Enter target date like YYYY-MM-DD: ')
+                datetime.date.fromisoformat(date)
+                break
+            except ValueError:
+                print('Date format is YYYY-MM-DD.')
+        # Grab closest prior Monday
+        date = str(calculate_monday(date))
+
+        cust_choice = input('- Enter 1 for a full report, or 2 for a single customer report: ')
+        while cust_choice != '1' and cust_choice != '2':
+            cust_choice = input(' > Enter only a 1 or 2, please:')
+        if cust_choice == '2':
+            cust_acc = int(input('- Enter the account number for your customer: '))
+            data = data[data.CustomerNumber == cust_acc]
+
+        dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
+        while dcp not in range(5):
+            dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
+
+        print('Thank you! Please hold...')
+    
+    else:
+        config_data = read_config()
+        #TODO: build config handler
+        # Read pre-defined data file into df
+        target_file = config_data['data_path'] #TODO: change to dynamic file selection from config
+
+        # Instantiate data df
+        data = init_df(target_file)
+
+        # Perform date calc, get calculated monday from previous week
+        today = datetime.date.today()
+        delta = datetime.timedelta(weeks=1)
+        date = today - delta
+        date = str(calculate_monday(date))
+
+        # For the automated report, we always use cust_choice 1
+        cust_choice = 1
+
+        # Instantiate dcp
+        dcp = int(config_data['dcp_value']) #TODO: read in from config
+
+
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
@@ -219,3 +250,6 @@ if __name__ == "__main__":
     wb.save('output.xlsx')
 
 
+if __name__ == "__main__":
+    context = check_execution_context()
+    main(context)
