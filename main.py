@@ -19,6 +19,7 @@ def main(call_type=0):
 
     
     if call_type == 1:
+        
         print('=' * 50)
         print('Master-Metered Community Violation Application\nWater Analytics 2024')
         print('=' * 50)
