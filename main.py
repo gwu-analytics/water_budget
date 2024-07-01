@@ -5,8 +5,8 @@ from customer import Customer
 from meter import Meter
 from formatting import *
 
-if __name__ == "__main__":
 
+def main():
     print('=' * 50)
     print('Master-Metered Community Violation Application\nWater Analytics 2024')
     print('=' * 50 + '\n- Select your data file.')
@@ -222,3 +222,5 @@ if __name__ == "__main__":
         wb.save('output.xlsx')
 
 
+if __name__ == "__main__":
+    main()
