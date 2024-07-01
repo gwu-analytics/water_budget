@@ -1,4 +1,5 @@
 import datetime
+import time
 from openpyxl import Workbook
 from methods import *
 from customer import Customer
@@ -7,16 +8,24 @@ from formatting import *
 
 if __name__ == "__main__":
 
-    print('=' * 50)
-    print('Master-Metered Community Violation Application\nWater Analytics 2024')
-    print('=' * 50 + '\n- Select your data file.')
+    #print('=' * 50)
+    #print('Master-Metered Community Violation Application\nWater Analytics 2024')
+    #print('=' * 50 + '\n- Select your data file.')
 
     # Display file explorer, get data file, convert meter lists to str
     file_selected = file_explorer()
     data = pd.read_excel(file_selected)
-    data.WaterMeters = data.WaterMeters.astype(str)
-    data.IrrigationMeters = data.IrrigationMeters.astype(str)
+    while True:
+        try:
+            data.WaterMeters = data.WaterMeters.astype(str)
+            data.IrrigationMeters = data.IrrigationMeters.astype(str)
+            break
+        except AttributeError:
+            print('You selected the incorrect file. Please try again.')
+            file_selected = file_explorer()
+            data = pd.read_excel(file_selected)
 
+    # ONLY IF single report TRUE
     # Collect target date from user, check for correct format.
     while True:
         try:
@@ -28,6 +37,7 @@ if __name__ == "__main__":
     # Grab closest prior Monday
     date = str(calculate_monday(date))
 
+    # take from input file?
     cust_choice = input('- Enter 1 for a full report, or 2 for a single customer report: ')
     while cust_choice != '1' and cust_choice != '2':
         cust_choice = input(' > Enter only a 1 or 2, please:')
@@ -38,8 +48,6 @@ if __name__ == "__main__":
     dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
     while dcp not in range(5):
         dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
-
-    print('Thank you! Please hold...')
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
@@ -56,7 +64,6 @@ if __name__ == "__main__":
             meter_obj = Meter(meter, 'Domestic', meter_data)
 
             customer.add_meter(current_meter_obj=meter_obj)
-            customer.add_usage(meter_data.ReadValue.sum())
 
         # [IRRIGATION] Query usage data, return hourly reads, count violations
         irrig_meters = row.IrrigationMeters.split(', ')
@@ -75,6 +82,7 @@ if __name__ == "__main__":
                 customer.irrig_viol = irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
+        # Only use irrigation usage
         if customer.usage > customer.allowance and dcp < 3:
             customer.bug_viol = 1
 
@@ -134,17 +142,6 @@ if __name__ == "__main__":
     print('=' * 50)
     for i, customer in enumerate(customers):
         print('Generated data for', customer.name)
-        if dcp < 3:
-            print('Budget violations:', customer.bug_viol)
-            print('Irrigation violations: N/A')
-        else:
-            print('Budget violations: N/A')
-            print('Irrigation violations:', customer.irrig_viol)
-        print('Mid-day violations:', customer.mid_viol)
-        print('Monday violations:', customer.mon_viol)
-        print('Customer Budget:', customer.allowance)
-        print('Customer Usage:', customer.usage)
-        print('=' * 50)
 
         ws.cell(row=i + 2, column=1).value = customer.name
         ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
@@ -219,6 +216,6 @@ if __name__ == "__main__":
                     if dcp >= 3 and row.ReadValue > 0 and meter.type == 'Irrigation':
                         ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).font = bold_font
 
-        wb.save('output.xlsx')
+    wb.save('output.xlsx')
 
 

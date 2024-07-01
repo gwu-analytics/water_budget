@@ -39,9 +39,9 @@ def calculate_budget(acres, dcp_num):
     if dcp_num == 0:
         return (acres * (1 / 12) * 7.48) / 1000
     elif dcp_num == 1:
-        return (acres * (0.75 / 12) * 7.48 * dcp_num) / 1000
+        return (acres * (0.75 / 12) * 7.48) / 1000
     elif dcp_num == 2:
-        return (acres * (0.5 / 12) * 7.48 * dcp_num) / 1000
+        return (acres * (0.5 / 12) * 7.48) / 1000
     else:
         return 0
 
@@ -64,11 +64,12 @@ def irrigation_violations(df):
 
 
 def midday_violations(df, dcp):
+    # Start times are one hour ahead of actual times
     if dcp == 1:
-        start = pd.to_datetime('09:00:00').time()
+        start = pd.to_datetime('10:00:00').time()
         end = pd.to_datetime('19:00:00').time()
     elif dcp == 2:
-        start = pd.to_datetime('07:00:00').time()
+        start = pd.to_datetime('08:00:00').time()
         end = pd.to_datetime('19:00:00').time()
     midday_df = df.copy()
     midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate)
