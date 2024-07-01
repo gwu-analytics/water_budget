@@ -1,4 +1,5 @@
 import datetime
+import time
 from openpyxl import Workbook
 from methods import *
 from customer import Customer
@@ -93,7 +94,6 @@ def main(call_type=0):
             meter_obj = Meter(meter, 'Domestic', meter_data)
 
             customer.add_meter(current_meter_obj=meter_obj)
-            customer.add_usage(meter_data.ReadValue.sum())
 
         # [IRRIGATION] Query usage data, return hourly reads, count violations
         irrig_meters = row.IrrigationMeters.split(', ')
@@ -112,6 +112,7 @@ def main(call_type=0):
                 customer.irrig_viol = irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
+        # Only use irrigation usage
         if customer.usage > customer.allowance and dcp < 3:
             customer.bug_viol = 1
 
@@ -171,17 +172,6 @@ def main(call_type=0):
     print('=' * 50)
     for i, customer in enumerate(customers):
         print('Generated data for', customer.name)
-        if dcp < 3:
-            print('Budget violations:', customer.bug_viol)
-            print('Irrigation violations: N/A')
-        else:
-            print('Budget violations: N/A')
-            print('Irrigation violations:', customer.irrig_viol)
-        print('Mid-day violations:', customer.mid_viol)
-        print('Monday violations:', customer.mon_viol)
-        print('Customer Budget:', customer.allowance)
-        print('Customer Usage:', customer.usage)
-        print('=' * 50)
 
         ws.cell(row=i + 2, column=1).value = customer.name
         ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
@@ -256,7 +246,7 @@ def main(call_type=0):
                     if dcp >= 3 and row.ReadValue > 0 and meter.type == 'Irrigation':
                         ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).font = bold_font
 
-        wb.save('output.xlsx')
+    wb.save('output.xlsx')
 
 
 if __name__ == "__main__":
