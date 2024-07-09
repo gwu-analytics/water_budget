@@ -1,4 +1,5 @@
 import pyodbc
+
 import setup
 import os
 import configparser
@@ -100,6 +101,7 @@ def read_config():
     return config_values
 
 
+
 def query_mdm_intervals(meter_id, date, acc_num):
     odm = (
         'mssql+pyodbc:///?odbc_connect='
@@ -113,7 +115,7 @@ def query_mdm_intervals(meter_id, date, acc_num):
     odm_1 = text("""
         SELECT 
                 ReadValue,
-				ReadDate
+				        ReadDate
             FROM
                 ODM.IntervalReads
             WHERE

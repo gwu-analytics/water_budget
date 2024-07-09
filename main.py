@@ -72,12 +72,12 @@ def main(call_type=0):
         date = today - delta
         date = str(calculate_monday(date))
 
+
         # For the automated report, we always use cust_choice 1
         cust_choice = 1
 
         # Instantiate dcp
         dcp = int(config_data['dcp_value']) #TODO: read in from config
-
 
 
     customers = []
@@ -107,12 +107,15 @@ def main(call_type=0):
             customer.add_usage(meter_data.ReadValue.sum())
 
             customer.mon_viol = monday_violations(meter_data)
+
             if dcp < 3:
+
                 customer.mid_viol = midday_violations(meter_data, dcp)
             elif dcp >= 3:
                 customer.irrig_viol = irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
+
         # Only use irrigation usage
         if customer.usage > customer.allowance and dcp < 3:
             customer.bug_viol = 1
@@ -173,7 +176,6 @@ def main(call_type=0):
     print('=' * 50)
     for i, customer in enumerate(customers):
         print('Generated data for', customer.name)
-
         ws.cell(row=i + 2, column=1).value = customer.name
         ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
         ws.cell(row=i + 2, column=3).value = customer.bug_viol

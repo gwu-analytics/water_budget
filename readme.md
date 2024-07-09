@@ -31,10 +31,10 @@ The irrigation coverage depth, $i$, is introduced via lookup from the Drought Co
 |DCP Argument|Irrigation Depth|No Water Window Min| No Water Window Max|
 |------------|----------------|-------------------|--------------------|
 |           0|               1|               null|                null|
-|           1|            0.75|               0900|                2000|
+|           1|            0.75|               0900|                1900|
 |           2|             0.5|               0700|                1900|
 |           3|               0|               0000|                2400|
-|           4|               0|               0000|                2400|
+|           4|               0|               null|                null|
 
 In addition, the No Water Window Min and No Water Window Max values are used to assess watering window violations.
 
@@ -81,7 +81,15 @@ Further experimentation will be done to compare a statistically significant set 
 
 ## Software
 
-The water_budget.py program is written in Python 3.12
+The water_budget.py program is written in Python 3.12.
+
+The basic logic of the program is this:
+1. The program requests the user for a data file, a date, report type, and the current DCP stage.
+2. The program loads the user file.
+3. The program goes from customer to customer in the user file, and for each, processes total violations of all types.
+4. The program outputs the violation counts to a formatted Excel file, and, if requested, a simplified report of all meter reads for a single customer.
+
+The program is designed to be used with a specific input file that provides the customer's account number and meter identifiers. The program is also designed to cover a single week in retrospect. 
 
 ## Questions
 - Should we use sum of all meters or only the irrigation meters?
