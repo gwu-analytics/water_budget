@@ -7,9 +7,10 @@ from meter import Meter
 from formatting import *
 
 
-def main(call_type=0, call_override=0):
+def main(call_type=0, context_override=0):
 
-    call_override = parse_call_arguments()
+    context_override = parse_call_arguments()
+
 
     # Sub functions
     # TODO: Move to methods.py
@@ -20,8 +21,10 @@ def main(call_type=0, call_override=0):
         return data
 
 
+    check_for_config()
+
     # Testing feature: call_type switch on override
-    if call_override == 1:
+    if context_override == 1:
         call_type = 0
     
     if call_type == 1:
@@ -30,7 +33,6 @@ def main(call_type=0, call_override=0):
         print('Master-Metered Community Violation Application\nWater Analytics 2024')
         print('=' * 50)
 
-        check_for_config()
 
         # Setup job
         print('\n- Select your data file.')
@@ -271,6 +273,7 @@ def main(call_type=0, call_override=0):
 
     wb.save('output.xlsx')
 
+    network_dump('output.xlsx', os.path.dirname(target_file), config_data['output_path'])
 
 if __name__ == "__main__":
     context = check_execution_context()

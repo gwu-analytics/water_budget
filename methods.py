@@ -7,15 +7,17 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
+import shutil
 
 def parse_call_arguments():
     parser = argparse.ArgumentParser(description="Process arguments on terminal call.")
 
-    # Setup command-line testing feature using the '--call_override' argument to override context-based behavior.
-    parser.add_argument("--call_override", type=int, help="Provide a 1 to override context-based behaviour for testing.")
+    # Setup command-line testing feature using the '-context_override' argument to override context-based behavior (mimic a system call)
+    parser.add_argument("-context_override", type=int, help="Provide a 1 to override context-based behaviour for testing.")
     args = parser.parse_args()
-    call_override = args.call_override
-    return call_override
+    context_override = args.context_override
+
+    return context_override
 
 def check_for_config():
     if os.path.isfile('config.ini') == True:
@@ -209,3 +211,12 @@ def select_directory():
     directory = filedialog.askdirectory(title='Select Output Directory')
     root.destroy()
     return directory
+
+def network_dump(xlsx_file, source_path, destination_path):
+
+    # Build paths to the source and destination (network) files
+    source_file = os.path.join(source_path, xlsx_file)
+    destination_file = os.path.join(destination_path, xlsx_file)
+
+    # Copy file from one location to the network location
+    shutil.copy(source_file, destination_file)
