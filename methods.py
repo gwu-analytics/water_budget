@@ -1,5 +1,5 @@
 import pyodbc
-
+import argparse
 import setup
 import os
 import configparser
@@ -8,6 +8,14 @@ import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 
+def parse_call_arguments():
+    parser = argparse.ArgumentParser(description="Process arguments on terminal call.")
+
+    # Setup command-line testing feature using the '--call_override' argument to override context-based behavior.
+    parser.add_argument("--call_override", type=int, help="Provide a 1 to override context-based behaviour for testing.")
+    args = parser.parse_args()
+    call_override = args.call_override
+    return call_override
 
 def check_for_config():
     if os.path.isfile('config.ini') == True:

@@ -1,5 +1,5 @@
 import datetime
-import time
+import time #TODO: Is this import deprecated?
 from openpyxl import Workbook
 from methods import *
 from customer import Customer
@@ -7,16 +7,22 @@ from meter import Meter
 from formatting import *
 
 
-def main(call_type=0):
+def main(call_type=0, call_override=0):
 
+    call_override = parse_call_arguments()
 
     # Sub functions
+    # TODO: Move to methods.py
     def init_df(file):
         data = pd.read_excel(file)
         data.WaterMeters = data.WaterMeters.astype(str)
         data.IrrigationMeters = data.IrrigationMeters.astype(str)
         return data
 
+
+    # Testing feature: call_type switch on override
+    if call_override == 1:
+        call_type = 0
     
     if call_type == 1:
 
@@ -57,7 +63,10 @@ def main(call_type=0):
 
         print('Thank you! Please hold...')
     
-    else:
+    elif call_type == 0: # Called via task-scheduler, uses config.ini for report settings.
+
+        print("...Loading data from config.ini...\n")
+
         config_data = read_config()
         #TODO: build config handler
         # Read pre-defined data file into df
@@ -77,7 +86,18 @@ def main(call_type=0):
         cust_choice = 1
 
         # Instantiate dcp
-        dcp = int(config_data['dcp_value']) #TODO: read in from config
+        dcp = int(config_data['dcp_value'])
+
+        print("Report variables:")
+        print('=' * 50)
+        print(f"Start Date:\t{date}")
+        print(f"DCP:\t\t{dcp}")
+        print(f"Target Path:\t{target_file}")
+        print(f"Output Dir:\t{config_data['output_path']}")
+
+    else:
+        raise RuntimeError(f"Water Budget encountered a fatal error: invalid call_type; {call_type}")
+
 
 
     customers = []
