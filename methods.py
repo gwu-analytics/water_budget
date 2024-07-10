@@ -212,11 +212,11 @@ def select_directory():
     root.destroy()
     return directory
 
-def network_dump(xlsx_file, source_path, destination_path):
+def network_dump(xlsx_file, destination_path):
 
     # Build paths to the source and destination (network) files
-    source_file = os.path.join(source_path, xlsx_file)
-    destination_file = os.path.join(destination_path, xlsx_file)
+    source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\","/")
+    destination_file = os.path.join(destination_path, xlsx_file).replace("\\","/")
 
     # Copy file from one location to the network location
     shutil.copy(source_file, destination_file)

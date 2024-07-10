@@ -73,6 +73,7 @@ def main(call_type=0, context_override=0):
         #TODO: build config handler
         # Read pre-defined data file into df
         target_file = config_data['data_path'] #TODO: change to dynamic file selection from config
+        destination_file = config_data['output_path']
 
         # Instantiate data df
         data = init_df(target_file)
@@ -273,7 +274,7 @@ def main(call_type=0, context_override=0):
 
     wb.save('output.xlsx')
 
-    network_dump('output.xlsx', os.path.dirname(target_file), config_data['output_path'])
+    network_dump('output.xlsx', config_data['output_path'])
 
 if __name__ == "__main__":
     context = check_execution_context()
