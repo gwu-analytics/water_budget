@@ -1,5 +1,6 @@
 import pyodbc
 import argparse
+import logging
 import setup
 import os
 import configparser
@@ -9,33 +10,44 @@ import tkinter as tk
 from tkinter import filedialog
 import shutil
 
+logging.basicConfig(filename='water_budget.log', level=logging.INFO, format = '%(asctime)s - %(message)s')
+
 def parse_call_arguments():
     parser = argparse.ArgumentParser(description="Process arguments on terminal call.")
 
     # Setup command-line testing feature using the '-context_override' argument to override context-based behavior (mimic a system call)
-    parser.add_argument("-context_override", type=int, help="Provide a 1 to override context-based behaviour for testing.")
+    parser.add_argument("-context_override", type=int, help="Provide a 1 to override context-based behaviour for testing.", default=0)
+
+    # Return args
     args = parser.parse_args()
-    context_override = args.context_override
-
-    return context_override
-
-def check_for_config():
-    if os.path.isfile('config.ini') == True:
-        print('Detected "config.ini" file...')
-    else:
-        print('No "config.ini" file found, running setup.')
-        setup.setup()
-
+    return args
 
 def check_execution_context():
     # Check if a specific environment variable set by Task Scheduler exists
+    # TODO: Log username
+    logging.info(f"check_execution_context: User= {os.environ['USERNAME']}")
+
     if 'USERNAME' in os.environ and os.environ['USERNAME'] == 'SYSTEM':
-        return 0
+        return 1 # Call is from the system
+    
     else:
-        return 1
+        return 0 # Call is from a user
+
+
+def check_for_config():
+    logging.info("check_for_config: Checking for existing config.ini")
+    if os.path.isfile('config.ini') == True:
+        print('Detected "config.ini" file...')
+        logging.info("check_for_config: Detected config.ini file")
+    else:
+        print('No "config.ini" file found, running setup.')
+        logging.info("check_for_config: No config file detected")
+        setup.setup()
 
 
 def create_config():
+    logging.info("create_config: Running config creation wizard")
+
     # Create ConfigParser object
     config = configparser.ConfigParser()
     
@@ -58,10 +70,29 @@ def create_config():
     config['Data'] = {'data_file': target_file}
     config['Output'] = {'output_path': output_dir}
 
-    # Write to file
-    with open('config.ini', 'w') as configfile:
-        config.write(configfile)
+    config_data = read_config()
+    logging.info(f"create_config: Config settings:\n\tGeneral: Meta: {config_data['dcp']}\n\tData: {config_data['data_file']}\n\tOutput: {config['output_path']}")
 
+    # Write to file
+    try: 
+        with open('config.ini', 'w') as configfile:
+            config.write(configfile)
+            logging.INFO("create_config: Config file written")
+    except Exception as e:
+        logging.ERROR(f"create_config: Failure writing config.ini: {e}")
+
+def init_df(file):
+    logging.info("init_df: Initializing dataframe")
+    data = pd.read_excel(file)
+
+    logging.info("init_df: Loading domestic meter data to dataframe")
+    data.WaterMeters = data.WaterMeters.astype(str)
+
+    logging.info("init_df: Loading irrigation meter data to dataframe")
+    data.IrrigationMeters = data.IrrigationMeters.astype(str)
+
+    logging.info("init_df: Dataframe intialization complete")
+    return data
 
 def update_dcp():
     # Create ConfigParser object
@@ -113,6 +144,7 @@ def read_config():
 
 
 def query_mdm_intervals(meter_id, date, acc_num):
+    logging.info("query_mdm_intervals: Constructing MDM database query")
     odm = (
         'mssql+pyodbc:///?odbc_connect='
         'DRIVER={ODBC Driver 17 for SQL Server};'
@@ -135,9 +167,11 @@ def query_mdm_intervals(meter_id, date, acc_num):
             AND
                 ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
     """)
-
+    logging.info("query_mdm_intervals: Creating SQLAlchemy engine")
     odm_engine = create_engine(odm)
+    logging.info("query_mdm_intervals: Querying MDM database")
     dataframe = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    logging.info("query_mdm_intervals: Disposing of engine")
     odm_engine.dispose()
     return dataframe
 
@@ -213,10 +247,21 @@ def select_directory():
     return directory
 
 def network_dump(xlsx_file, destination_path):
+    logging.info("network_dump: Performing network dump operation")
 
     # Build paths to the source and destination (network) files
+    logging.info("network_dump: Building source file path")
     source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\","/")
+    logging.info(f"network_dump: source path: {source_file}")
+                 
+    logging.info("network_dump: Building destination path")
     destination_file = os.path.join(destination_path, xlsx_file).replace("\\","/")
+    logging.info(f"network_dump: destination path: {destination_file}")
 
     # Copy file from one location to the network location
-    shutil.copy(source_file, destination_file)
+    logging.info("network_dump: Performing shutil.copy operation")
+    try:
+        shutil.copy(source_file, destination_file)
+        logging.info("network_dump: shutil.copy operation complete")
+    except Exception as e:
+        logging.error(f"network_dump: failed to copy: {e}")

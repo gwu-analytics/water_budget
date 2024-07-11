@@ -7,24 +7,19 @@ from meter import Meter
 from formatting import *
 
 
-def main(call_type=0, context_override=0):
+def main():
 
-    context_override = parse_call_arguments()
+    args = parse_call_arguments()
 
-
-    # Sub functions
-    # TODO: Move to methods.py
-    def init_df(file):
-        data = pd.read_excel(file)
-        data.WaterMeters = data.WaterMeters.astype(str)
-        data.IrrigationMeters = data.IrrigationMeters.astype(str)
-        return data
-
-
+    if args.context_override != 0:
+        context = args.context_override
+    else:
+        context = check_execution_context()
+    #TODO: Log context
     check_for_config()
 
     # Testing feature: call_type switch on override
-    if context_override == 1:
+    if context == 1:
         call_type = 0
     
     if call_type == 1:
@@ -277,5 +272,4 @@ def main(call_type=0, context_override=0):
     network_dump('output.xlsx', config_data['output_path'])
 
 if __name__ == "__main__":
-    context = check_execution_context()
-    main(context)
+    main()
