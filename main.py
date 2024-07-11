@@ -18,10 +18,14 @@ def main():
     #TODO: Log context
     check_for_config()
 
+    call_type = 1
+
     # Testing feature: call_type switch on override
     if context == 1:
         call_type = 0
     
+    config_data = read_config()
+
     if call_type == 1:
 
         print('=' * 50)
@@ -64,7 +68,6 @@ def main():
 
         print("...Loading data from config.ini...\n")
 
-        config_data = read_config()
         #TODO: build config handler
         # Read pre-defined data file into df
         target_file = config_data['data_path'] #TODO: change to dynamic file selection from config

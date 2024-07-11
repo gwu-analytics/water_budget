@@ -70,16 +70,16 @@ def create_config():
     config['Data'] = {'data_file': target_file}
     config['Output'] = {'output_path': output_dir}
 
-    config_data = read_config()
-    logging.info(f"create_config: Config settings:\n\tGeneral: Meta: {config_data['dcp']}\n\tData: {config_data['data_file']}\n\tOutput: {config['output_path']}")
+    # config_data = read_config()
+    # logging.info(f"create_config: Config settings:\n\tGeneral: Meta: {config_data['dcp']}\n\tData: {config_data['data_file']}\n\tOutput: {config['output_path']}")
 
     # Write to file
     try: 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
-            logging.INFO("create_config: Config file written")
+            logging.info("create_config: Config file written")
     except Exception as e:
-        logging.ERROR(f"create_config: Failure writing config.ini: {e}")
+        logging.error(f"create_config: Failure writing config.ini: {e}")
 
 def init_df(file):
     logging.info("init_df: Initializing dataframe")
