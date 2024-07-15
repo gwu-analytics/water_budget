@@ -1,0 +1,7 @@
+# Ignore pycache, ini, and log files
+__pycache__/
+*.ini
+*.log
+
+# Ignore output excel file
+output.xlsx
