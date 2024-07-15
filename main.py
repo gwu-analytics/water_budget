@@ -9,6 +9,8 @@ from formatting import *
 
 def main():
 
+    logging.info("Process Started")
+
     args = parse_call_arguments()
 
     if args.context_override != 0:
@@ -25,6 +27,13 @@ def main():
         call_type = 0
     
     config_data = read_config()
+
+    logging.info(f"call_type = {call_type}")
+
+    logging.info("Config elements")
+    logging.info("=" * 50)
+    for k in config_data:
+        logging.info(f"{k}: {config_data[k]}")
 
     if call_type == 1:
 
@@ -71,7 +80,7 @@ def main():
         #TODO: build config handler
         # Read pre-defined data file into df
         target_file = config_data['data_path'] #TODO: change to dynamic file selection from config
-        destination_file = config_data['output_path']
+        destination_file = config_data['output_path'] #TODO: Review code, eliminate if unneeded.
 
         # Instantiate data df
         data = init_df(target_file)
@@ -96,10 +105,17 @@ def main():
         print(f"Target Path:\t{target_file}")
         print(f"Output Dir:\t{config_data['output_path']}")
 
+        
+        logging.info("Report variables:")
+        logging.info('=' * 50)
+        logging.info(f"Start Date:\t{date}")
+        logging.info(f"DCP:\t\t\t{dcp}")
+        logging.info(f"Target Path:\t{target_file}")
+        logging.info(f"Output Dir:\t{config_data['output_path']}")
+        logging.info("=" * 50)
+
     else:
         raise RuntimeError(f"Water Budget encountered a fatal error: invalid call_type; {call_type}")
-
-
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
@@ -273,6 +289,8 @@ def main():
     wb.save('output.xlsx')
 
     network_dump('output.xlsx', config_data['output_path'])
+
+    logging.info("Process completed\n" + "=" * 50)
 
 if __name__ == "__main__":
     main()
