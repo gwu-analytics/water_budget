@@ -1,10 +1,9 @@
 import datetime
-import time #TODO: Is this import deprecated?
 from openpyxl import Workbook
-from methods import *
 from customer import Customer
 from meter import Meter
 from formatting import *
+from methods import *
 
 
 def main():
@@ -35,12 +34,13 @@ def main():
     for k in config_data:
         logging.info(f"{k}: {config_data[k]}")
 
+    # If they can access the MDM, do we need this option whatsoever? Can the "single report" feature be deprecated?
+    # User interactivity presents many challenges; the simplest option is to avoid direct interaction with users.
     if call_type == 1:
 
         print('=' * 50)
         print('Master-Metered Community Violation Application\nWater Analytics 2024')
         print('=' * 50)
-
 
         # Setup job
         print('\n- Select your data file.')
