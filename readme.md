@@ -1,5 +1,4 @@
-# water_budget.py
-
+# Master-metered Violation Tracker Application (MMVT)
 City of Georgetown Water Utility Analytics Team
 
 ## Overview
@@ -34,7 +33,7 @@ The irrigation coverage depth, $i$, is introduced via lookup from the Drought Co
 |           1|            0.75|               0900|                1900|
 |           2|             0.5|               0700|                1900|
 |           3|               0|               0000|                2400|
-|           4|               0|               null|                null|
+|           4|               0|               0000|                2400|
 
 In addition, the No Water Window Min and No Water Window Max values are used to assess watering window violations.
 
@@ -69,7 +68,7 @@ This value becomes the weekly water budget for the customer during subsequent an
 
 In a given analysis period, in a given week period within that analysis period, if the customer's weekly sum of consumption between irrigation and domestic meters is greater than $b$, that week is flagged with a budget overage violation.
 
-### Watering window violation
+### Watering Window Violation
 
 For each interval read in each day period in the analysis period, if the interval hour is between the No Water Min and No Water Max hours for the selected DCP stage from the DCP reference table, then watering window violation is flagged.
 
@@ -81,7 +80,7 @@ Further experimentation will be done to compare a statistically significant set 
 
 ## Software
 
-The water_budget.py program is written in Python 3.12.
+The MMVT application is written in Python 3.12.
 
 The basic logic of the program is this:
 1. The program requests the user for a data file, a date, report type, and the current DCP stage.
@@ -91,7 +90,3 @@ The basic logic of the program is this:
 
 The program is designed to be used with a specific input file that provides the customer's account number and meter identifiers. The program is also designed to cover a single week in retrospect. 
 
-## Questions
-- Should we use sum of all meters or only the irrigation meters?
-    - Need to test both options to see how they perform.
-    - Sum of both meters is necessary to infer the correct drought contingency value per Chelsea.
