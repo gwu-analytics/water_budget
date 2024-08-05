@@ -5,6 +5,7 @@ class Customer:
         self.meters = []
         self.__acc_party = None
         self.usage = 0
+        self.est_reads = 'NO'
 
     def set_acc_party(self, acc_party):
         self.__acc_party = acc_party

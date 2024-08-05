@@ -157,8 +157,7 @@ def query_mdm_intervals(meter_id, date, acc_num):
     odm_1 = text("""
         SELECT 
                 ReadValue,
-				ReadDate,
-				ReadQualityCode
+				        ReadDate
             FROM
                 ODM.IntervalReads
             WHERE
