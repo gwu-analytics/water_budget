@@ -1,5 +1,4 @@
 import datetime
-import time #TODO: Is this import deprecated?
 from openpyxl import Workbook
 from methods import *
 from customer import Customer
@@ -8,7 +7,6 @@ from formatting import *
 
 
 def main():
-
     logging.info("Process Started")
 
     args = parse_call_arguments()
@@ -17,7 +15,7 @@ def main():
         context = args.context_override
     else:
         context = check_execution_context()
-    #TODO: Log context
+    # TODO: Log context
     check_for_config()
 
     call_type = 1
@@ -25,7 +23,7 @@ def main():
     # Testing feature: call_type switch on override
     if context == 1:
         call_type = 0
-    
+
     config_data = read_config()
 
     logging.info(f"call_type = {call_type}")
@@ -40,7 +38,6 @@ def main():
         print('=' * 50)
         print('Master-Metered Community Violation Application\nWater Analytics 2024')
         print('=' * 50)
-
 
         # Setup job
         print('\n- Select your data file.')
@@ -72,15 +69,15 @@ def main():
             dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
 
         print('Thank you! Please hold...')
-    
-    elif call_type == 0: # Called via task-scheduler, uses config.ini for report settings.
+
+    elif call_type == 0:  # Called via task-scheduler, uses config.ini for report settings.
 
         print("...Loading data from config.ini...\n")
 
-        #TODO: build config handler
+        # TODO: build config handler
         # Read pre-defined data file into df
-        target_file = config_data['data_path'] #TODO: change to dynamic file selection from config
-        destination_file = config_data['output_path'] #TODO: Review code, eliminate if unneeded.
+        target_file = config_data['data_path']  # TODO: change to dynamic file selection from config
+        destination_file = config_data['output_path']  # TODO: Review code, eliminate if unneeded.
 
         # Instantiate data df
         data = init_df(target_file)
@@ -90,7 +87,6 @@ def main():
         delta = datetime.timedelta(weeks=1)
         date = today - delta
         date = str(calculate_monday(date))
-
 
         # For the automated report, we always use cust_choice 1
         cust_choice = 1
@@ -105,7 +101,6 @@ def main():
         print(f"Target Path:\t{target_file}")
         print(f"Output Dir:\t{config_data['output_path']}")
 
-        
         logging.info("Report variables:")
         logging.info('=' * 50)
         logging.info(f"Start Date:\t{date}")
@@ -127,7 +122,7 @@ def main():
         # [WATER] Query usage data, return hourly reads, count violations
         water_meters = row.WaterMeters.split(', ')
         for meter in water_meters:
-            #print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
+            # print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
             meter_obj = Meter(meter, 'Domestic', meter_data)
 
@@ -136,7 +131,7 @@ def main():
         # [IRRIGATION] Query usage data, return hourly reads, count violations
         irrig_meters = row.IrrigationMeters.split(', ')
         for meter in irrig_meters:
-            #print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
+            # print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
             meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
             meter_obj = Meter(meter, 'Irrigation', meter_data)
 
@@ -229,7 +224,7 @@ def main():
 
         for customer in customers:
             for i, meter in enumerate(customer.meters):
-                ws = wb.create_sheet(meter.type, i+1)
+                ws = wb.create_sheet(meter.type, i + 1)
 
                 meter.data['day'] = meter.data['ReadDate']
                 meter.data['day'] = pd.to_datetime(meter.data['day']).dt.day_name()
@@ -250,7 +245,7 @@ def main():
                 ws['H1'].font, ws['H1'].border = bold_font, thin_border
 
                 ws['A2'], ws['A3'], ws['A4'], ws['A5'] = '12:00 AM', '1:00 AM', '2:00 AM', '3:00 AM'
-                ws['A6'], ws['A7'], ws['A8'], ws['A9']  = '4:00 AM', '5:00 AM', '6:00 AM', '7:00 AM'
+                ws['A6'], ws['A7'], ws['A8'], ws['A9'] = '4:00 AM', '5:00 AM', '6:00 AM', '7:00 AM'
                 ws['A10'], ws['A11'], ws['A12'], ws['A13'] = '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'
                 ws['A14'], ws['A15'], ws['A16'], ws['A17'] = '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'
                 ws['A18'], ws['A19'], ws['A20'], ws['A21'] = '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'
@@ -281,16 +276,17 @@ def main():
                 ws['K10'] = 'Gray cells mark the prohibited mid-day watering window'
 
                 for j, row in meter.data.iterrows():
-                    ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).value = row.ReadValue
+                    ws.cell(row=row.ReadDate.hour + 2, column=row.ReadDate.weekday() + 2).value = row.ReadValue
 
                     if dcp >= 3 and row.ReadValue > 0 and meter.type == 'Irrigation':
-                        ws.cell(row=row.ReadDate.hour+2, column=row.ReadDate.weekday()+2).font = bold_font
+                        ws.cell(row=row.ReadDate.hour + 2, column=row.ReadDate.weekday() + 2).font = bold_font
 
     wb.save('output.xlsx')
 
     network_dump('output.xlsx', config_data['output_path'])
 
     logging.info("Process completed\n" + "=" * 50)
+
 
 if __name__ == "__main__":
     main()
