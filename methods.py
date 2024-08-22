@@ -10,17 +10,20 @@ import tkinter as tk
 from tkinter import filedialog
 import shutil
 
-logging.basicConfig(filename='water_budget.log', level=logging.INFO, format = '%(asctime)s - %(message)s')
+logging.basicConfig(filename='water_budget.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+
 
 def parse_call_arguments():
     parser = argparse.ArgumentParser(description="Process arguments on terminal call.")
 
     # Setup command-line testing feature using the '-context_override' argument to override context-based behavior (mimic a system call)
-    parser.add_argument("-context_override", type=int, help="Provide a 1 to override context-based behaviour for testing.", default=0)
+    parser.add_argument("-context_override", type=int,
+                        help="Provide a 1 to override context-based behaviour for testing.", default=0)
 
     # Return args
     args = parser.parse_args()
     return args
+
 
 def check_execution_context():
     # Check if a specific environment variable set by Task Scheduler exists
@@ -28,10 +31,10 @@ def check_execution_context():
     logging.info(f"check_execution_context: User= {os.environ['USERNAME']}")
 
     if 'USERNAME' in os.environ and os.environ['USERNAME'] == 'SYSTEM':
-        return 1 # Call is from the system
-    
+        return 1  # Call is from the system
+
     else:
-        return 0 # Call is from a user
+        return 0  # Call is from a user
 
 
 def check_for_config():
@@ -50,14 +53,14 @@ def create_config():
 
     # Create ConfigParser object
     config = configparser.ConfigParser()
-    
+
     # Request target file
     print('Select data file...')
     target_file = file_explorer()
 
     # Request metadata
     dcp = int(input('Enter current DCP stage, from 0 to 4: '))
-    while dcp not in range (5):
+    while dcp not in range(5):
         dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
 
     # Request output dir
@@ -74,12 +77,13 @@ def create_config():
     # logging.info(f"create_config: Config settings:\n\tGeneral: Meta: {config_data['dcp']}\n\tData: {config_data['data_file']}\n\tOutput: {config['output_path']}")
 
     # Write to file
-    try: 
+    try:
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
             logging.info("create_config: Config file written")
     except Exception as e:
         logging.error(f"create_config: Failure writing config.ini: {e}")
+
 
 def init_df(file):
     logging.info("init_df: Initializing dataframe")
@@ -94,6 +98,7 @@ def init_df(file):
     logging.info("init_df: Dataframe intialization complete")
     return data
 
+
 def update_dcp():
     # Create ConfigParser object
     config = configparser.ConfigParser()
@@ -104,7 +109,7 @@ def update_dcp():
     # Elicit DCP value
     print(f'Current DCP stage: {config.get('Meta', 'dcp')}')
     dcp = int(input('Enter current DCP stage, from 0 to 4: '))
-    while dcp not in range (5):
+    while dcp not in range(5):
         dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
 
     # Modify dcp
@@ -140,7 +145,6 @@ def read_config():
 
     # Return the dict to the calling function
     return config_values
-
 
 
 def query_mdm_intervals(meter_id, date, acc_num):
@@ -246,16 +250,17 @@ def select_directory():
     root.destroy()
     return directory
 
+
 def network_dump(xlsx_file, destination_path):
     logging.info("network_dump: Performing network dump operation")
 
     # Build paths to the source and destination (network) files
     logging.info("network_dump: Building source file path")
-    source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\","/")
+    source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\", "/")
     logging.info(f"network_dump: source path: {source_file}")
-                 
+
     logging.info("network_dump: Building destination path")
-    destination_file = os.path.join(destination_path, xlsx_file).replace("\\","/")
+    destination_file = os.path.join(destination_path, xlsx_file).replace("\\", "/")
     logging.info(f"network_dump: destination path: {destination_file}")
 
     # Copy file from one location to the network location

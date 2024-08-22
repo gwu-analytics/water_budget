@@ -33,44 +33,7 @@ def main():
     for k in config_data:
         logging.info(f"{k}: {config_data[k]}")
 
-    if call_type == 1:
-
-        print('=' * 50)
-        print('Master-Metered Community Violation Application\nWater Analytics 2024')
-        print('=' * 50)
-
-        # Setup job
-        print('\n- Select your data file.')
-
-        # Display file explorer, get data file, convert meter lists to str
-        file_selected = file_explorer()
-        data = init_df(file_selected)
-
-        # Collect target date from user, check for correct format.
-        while True:
-            try:
-                date = input('- Enter target date like YYYY-MM-DD: ')
-                datetime.date.fromisoformat(date)
-                break
-            except ValueError:
-                print('Date format is YYYY-MM-DD.')
-        # Grab closest prior Monday
-        date = str(calculate_monday(date))
-
-        cust_choice = input('- Enter 1 for a full report, or 2 for a single customer report: ')
-        while cust_choice != '1' and cust_choice != '2':
-            cust_choice = input(' > Enter only a 1 or 2, please:')
-        if cust_choice == '2':
-            cust_acc = int(input('- Enter the account number for your customer: '))
-            data = data[data.CustomerNumber == cust_acc]
-
-        dcp = int(input('- Enter the current DCP stage, from 0 to 4: '))
-        while dcp not in range(5):
-            dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
-
-        print('Thank you! Please hold...')
-
-    elif call_type == 0:  # Called via task-scheduler, uses config.ini for report settings.
+    if call_type == 0:  # Called via task-scheduler, uses config.ini for report settings.
 
         print("...Loading data from config.ini...\n")
 
@@ -93,13 +56,6 @@ def main():
 
         # Instantiate dcp
         dcp = int(config_data['dcp_value'])
-
-        print("Report variables:")
-        print('=' * 50)
-        print(f"Start Date:\t{date}")
-        print(f"DCP:\t\t{dcp}")
-        print(f"Target Path:\t{target_file}")
-        print(f"Output Dir:\t{config_data['output_path']}")
 
         logging.info("Report variables:")
         logging.info('=' * 50)
@@ -205,9 +161,7 @@ def main():
     ws['L1'].font = bold_font
     ws['L2'] = dcp
 
-    print('=' * 50)
     for i, customer in enumerate(customers):
-        print('Generated data for', customer.name)
         ws.cell(row=i + 2, column=1).value = customer.name
         ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
         ws.cell(row=i + 2, column=3).value = customer.bug_viol
@@ -216,70 +170,6 @@ def main():
         ws.cell(row=i + 2, column=6).value = customer.mon_viol
         ws.cell(row=i + 2, column=7).value = customer.allowance
         ws.cell(row=i + 2, column=8).value = customer.usage
-
-    if cust_choice == '2':
-
-        if len(customers) == 0:
-            print('Failed to locate customer! Ensure account number is correct.')
-
-        for customer in customers:
-            for i, meter in enumerate(customer.meters):
-                ws = wb.create_sheet(meter.type, i + 1)
-
-                meter.data['day'] = meter.data['ReadDate']
-                meter.data['day'] = pd.to_datetime(meter.data['day']).dt.day_name()
-
-                ws['B1'] = 'Mon'
-                ws['B1'].font, ws['B1'].border = bold_font, thin_border
-                ws['C1'] = 'Tues'
-                ws['C1'].font, ws['C1'].border = bold_font, thin_border
-                ws['D1'] = 'Wed'
-                ws['D1'].font, ws['D1'].border = bold_font, thin_border
-                ws['E1'] = 'Thur'
-                ws['E1'].font, ws['E1'].border = bold_font, thin_border
-                ws['F1'] = 'Fri'
-                ws['F1'].font, ws['F1'].border = bold_font, thin_border
-                ws['G1'] = 'Sat'
-                ws['G1'].font, ws['G1'].border = bold_font, thin_border
-                ws['H1'] = 'Sun'
-                ws['H1'].font, ws['H1'].border = bold_font, thin_border
-
-                ws['A2'], ws['A3'], ws['A4'], ws['A5'] = '12:00 AM', '1:00 AM', '2:00 AM', '3:00 AM'
-                ws['A6'], ws['A7'], ws['A8'], ws['A9'] = '4:00 AM', '5:00 AM', '6:00 AM', '7:00 AM'
-                ws['A10'], ws['A11'], ws['A12'], ws['A13'] = '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM'
-                ws['A14'], ws['A15'], ws['A16'], ws['A17'] = '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM'
-                ws['A18'], ws['A19'], ws['A20'], ws['A21'] = '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'
-                ws['A22'], ws['A23'], ws['A24'], ws['A25'] = '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM'
-
-                # Make start and end times for mid-day schedule gray
-                if meter.type == 'Irrigation':
-                    for k in range(1, 9):
-                        ws.cell(row=21, column=k).fill = gray_fill
-                        if dcp == 1:
-                            ws.cell(row=11, column=k).fill = gray_fill
-                        elif dcp == 2:
-                            ws.cell(row=9, column=k).fill = gray_fill
-                    for l in range(2, 26):
-                        ws.cell(row=l, column=2).fill = orange_fill
-
-                ws['K1'] = 'Meter'
-                ws['K1'].font, ws['K1'].border = bold_font, thin_border
-                ws['K2'] = meter.meter_id
-                ws['L1'] = 'Type'
-                ws['L1'].font, ws['L1'].border = bold_font, thin_border
-                ws['L2'] = meter.type
-                ws['M1'] = 'Sum of Usage (kgals)'
-                ws['M1'].font, ws['M1'].border = bold_font, thin_border
-                ws['M2'] = meter.data['ReadValue'].sum()
-
-                ws['K9'] = 'Bold text indicates where an irrigation violation occurred'
-                ws['K10'] = 'Gray cells mark the prohibited mid-day watering window'
-
-                for j, row in meter.data.iterrows():
-                    ws.cell(row=row.ReadDate.hour + 2, column=row.ReadDate.weekday() + 2).value = row.ReadValue
-
-                    if dcp >= 3 and row.ReadValue > 0 and meter.type == 'Irrigation':
-                        ws.cell(row=row.ReadDate.hour + 2, column=row.ReadDate.weekday() + 2).font = bold_font
 
     wb.save('output.xlsx')
 
