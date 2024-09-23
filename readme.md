@@ -51,7 +51,7 @@ Any week period in the given analysis period where a customer's irrigation meter
 
 ### Water budget calculation and violation
 
-Water budgets will be calculated by taking as argument the area in square feet of irrigatable land for a given customer and calculating a weekly allowance based on 1" of irrigation over the totality of that acreage.
+Water budgets will be calculated by taking as argument the area in square feet of irrigatable land for a given customer and calculating a weekly allowance in thousands of gallons (kgals) based on an irrigation depth as prescribed by the current Drought Contingency Phase.
 
 Where $b$ is the weekly water budget,   
 $a$ is the square feet of irrigatable land,  
