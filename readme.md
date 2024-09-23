@@ -59,7 +59,7 @@ $i$ is the irrigation coverage depth in inches,
 $\gamma$ a constant of 7.48 gallons per cubic foot
 
 $$
-b = a * i * \gamma / 1000
+b = a * (i / 12) * \gamma / 1000
 $$
 
 In this calculation, $a$ is multiplied by $i$ to calculate a volume in cubic feet. $i$ is determined from the DCP reference table. The volume in cubic feet is then converted to gallons by multiplying by the constant $\gamma$. Finally, the product is converted into kgals by dividing by 1000.
