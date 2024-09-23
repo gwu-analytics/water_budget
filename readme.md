@@ -27,7 +27,7 @@ Each day period is a twenty-four hour period from 00:00:00 - 24:00:00.
 
 The irrigation coverage depth, $i$, is introduced via lookup from the Drought Contingency Plan (DCP) reference table:
 
-|DCP Argument|Irrigation Depth|No Water Window Min| No Water Window Max|
+|DCP Argument|Irrigation Depth in Inches|No Water Window Min| No Water Window Max|
 |------------|----------------|-------------------|--------------------|
 |           0|               1|               null|                null|
 |           1|            0.75|               0900|                1900|
@@ -55,7 +55,7 @@ Water budgets will be calculated by taking as argument the acreage of irrigatabl
 
 Where $b$ is the weekly water budget,   
 $a$ is the square feet of irrigatable land,  
-$i$ is the irrigation coverage depth in feet,  
+$i$ is the irrigation coverage depth in inches,  
 $\gamma$ a constant of 7.48 gallons per cubic foot
 
 $$
