@@ -9,64 +9,18 @@ from formatting import *
 def main():
     logging.info("Process Started")
 
-    args = parse_call_arguments()
+    input_file = 'L:/Division/Water Utility/4_UTILITY_SUPPORT/Analytics/Products/Large Property Variance/data_file/sample_book.xlsx'
+    output_file = 'L:/Division/Water Utility/4_UTILITY_SUPPORT/Analytics/Products/Large Property Variance/output_files/'
 
-    if args.context_override != 0:
-        context = args.context_override
-    else:
-        context = check_execution_context()
-    # TODO: Log context
-    check_for_config()
+    # Instantiate data df
+    data = init_df(input_file)
 
-    call_type = 1
+    # Perform date calc, get calculated monday from previous week
+    today = datetime.date.today()
+    date = (pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).dayofweek + 7)).date()
 
-    # Testing feature: call_type switch on override
-    if context == 1:
-        call_type = 0
-
-    config_data = read_config()
-
-    logging.info(f"call_type = {call_type}")
-
-    logging.info("Config elements")
-    logging.info("=" * 50)
-    for k in config_data:
-        logging.info(f"{k}: {config_data[k]}")
-
-    if call_type == 0:  # Called via task-scheduler, uses config.ini for report settings.
-
-        print("...Loading data from config.ini...\n")
-
-        # TODO: build config handler
-        # Read pre-defined data file into df
-        target_file = config_data['data_path']  # TODO: change to dynamic file selection from config
-        destination_file = config_data['output_path']  # TODO: Review code, eliminate if unneeded.
-
-        # Instantiate data df
-        data = init_df(target_file)
-
-        # Perform date calc, get calculated monday from previous week
-        today = datetime.date.today()
-        delta = datetime.timedelta(weeks=1)
-        date = today - delta
-        date = str(calculate_monday(date))
-
-        # For the automated report, we always use cust_choice 1
-        cust_choice = 1
-
-        # Instantiate dcp
-        dcp = int(config_data['dcp_value'])
-
-        logging.info("Report variables:")
-        logging.info('=' * 50)
-        logging.info(f"Start Date:\t{date}")
-        logging.info(f"DCP:\t\t\t{dcp}")
-        logging.info(f"Target Path:\t{target_file}")
-        logging.info(f"Output Dir:\t{config_data['output_path']}")
-        logging.info("=" * 50)
-
-    else:
-        raise RuntimeError(f"Water Budget encountered a fatal error: invalid call_type; {call_type}")
+    # Instantiate dcp manually
+    dcp = 1
 
     customers = []
     for row in data.itertuples(index=True, name='Customer'):
@@ -75,40 +29,37 @@ def main():
         customer.set_acc_party(acc_party=row.CustomerNumber)
         customer.set_allowance(allowance=calculate_budget(row.IrrigatableArea, dcp))
 
-        # [WATER] Query usage data, return hourly reads, count violations
-        water_meters = row.WaterMeters.split(', ')
-        for meter in water_meters:
-            # print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
-            meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
-            meter_obj = Meter(meter, 'Domestic', meter_data)
-
-            customer.add_meter(current_meter_obj=meter_obj)
-
         # [IRRIGATION] Query usage data, return hourly reads, count violations
-        irrig_meters = row.IrrigationMeters.split(', ')
-        for meter in irrig_meters:
             # print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
-            meter_data = query_mdm_intervals(meter, date, str(customer.get_acc_party()))
-            meter_obj = Meter(meter, 'Irrigation', meter_data)
+        if row.Type == 'MDM':
+            meter_data = query_mdm_intervals(row.IrrigationMeters, date, str(customer.get_acc_party()))
+        else:
+            # VariableID is hard-coded with the assumption that there is only one variable ID. If another
+            # customer were added with multiple meters, they would also have multiple VIDs. Would need update
+            meter_data = query_dh(str(int(row.IrrigationMeters)), date, str(int(row.VariableID)))
 
-            customer.add_meter(current_meter_obj=meter_obj)
-            customer.add_usage(meter_data.ReadValue.sum())
+            meter_obj = Meter(row.IrrigationMeters, 'Irrigation', meter_data)
 
-            customer.mon_viol = monday_violations(meter_data)
+        # Give customer object the meter and type
+        customer.add_meter(current_meter_obj=meter_obj)
+        customer.type == row.Type
+        # Add all usage from current meter to running usage total
+        customer.add_usage(meter_data.ReadValue.sum())
 
-            if dcp < 3:
+        customer.mon_viol = monday_violations(meter_data)
 
-                customer.mid_viol = midday_violations(meter_data, dcp)
-            elif dcp >= 3:
-                customer.irrig_viol = irrigation_violations(meter_data)
+        # Calculate midday or Monday violations given DCP
+        # These are only done on irrigation meters b/c it is impossible to separate
+        # domestic usage from irrigation due to sheer volume of usage in large multi-fam properties
+        if dcp < 3:
+            customer.mid_viol = midday_violations(meter_data, dcp)
+        elif dcp >= 3:
+            customer.irrig_viol = irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
-
-        # Only use irrigation usage
         if customer.usage > customer.allowance and dcp < 3:
             customer.bug_viol = 1
 
-        # Parsing reads and counting number of violations by type
         customers.append(customer)
 
     # Create workbook
@@ -171,9 +122,7 @@ def main():
         ws.cell(row=i + 2, column=7).value = customer.allowance
         ws.cell(row=i + 2, column=8).value = customer.usage
 
-    wb.save('output.xlsx')
-
-    network_dump('output.xlsx', config_data['output_path'])
+    wb.save(output_file + 'output.xlsx')
 
     logging.info("Process completed\n" + "=" * 50)
 
