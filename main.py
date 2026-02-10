@@ -9,11 +9,11 @@ from formatting import *
 def main():
     logging.info("Process Started")
 
-    input_file = 'L:/Division/Water Utility/4_UTILITY_SUPPORT/Analytics/Products/Large Property Variance/data_file/sample_book.xlsx'
-    output_file = 'L:/Division/Water Utility/4_UTILITY_SUPPORT/Analytics/Products/Large Property Variance/output_files/'
+    path = ("C:/Users/gduke/OneDrive - City of Georgetown/Documents - Team - Water Utility/Utility Support/Analytics/Products/Large Property Variance/")
+    output_path = path + 'Results/'
 
     # Instantiate data df
-    data = init_df(input_file)
+    data = init_df(path + 'sample_book.xlsx')
 
     # Perform date calc, get calculated monday from previous week
     today = datetime.date.today()
@@ -122,7 +122,7 @@ def main():
         ws.cell(row=i + 2, column=7).value = customer.allowance
         ws.cell(row=i + 2, column=8).value = customer.usage
 
-    wb.save(output_file + 'output.xlsx')
+    wb.save(output_path + 'output.xlsx')
 
     logging.info("Process completed\n" + "=" * 50)
 
