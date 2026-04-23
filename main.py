@@ -23,44 +23,45 @@ def main():
     dcp = 1
 
     customers = []
+    sources, vars = [], []
     for row in data.itertuples(index=True, name='Customer'):
         # Create customer obj and set object variables from data file
-        customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea)
-        customer.set_acc_party(acc_party=row.CustomerNumber)
+        customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea, cust_type=row.Type)
         customer.set_allowance(allowance=calculate_budget(row.IrrigatableArea, dcp))
+        for item in [x.strip() for x in str(int(row.SourceID)).split(",") if x.strip()]:
+            sources.append(item)
+        for item in [x.strip() for x in str(int(row.VariableID)).split(",") if x.strip()]:
+            vars.append(item)
+        for count, item in enumerate([x.strip() for x in str(row.IrrigationMeters).split(",") if x.strip()]):
+            customer.add_meter(Meter(item, 'Irrigation', sources[count], vars[count]))
 
-        # [IRRIGATION] Query usage data, return hourly reads, count violations
-            # print('Meter:', meter, '\nAccount:', customer.get_acc_party(), '\nDate:', date)
-        if row.Type == 'MDM':
-            meter_data = query_mdm_intervals(row.IrrigationMeters, date, str(customer.get_acc_party()))
-        else:
-            # VariableID is hard-coded with the assumption that there is only one variable ID. If another
-            # customer were added with multiple meters, they would also have multiple VIDs. Would need update
-            meter_data = query_dh(str(int(row.IrrigationMeters)), date, str(int(row.VariableID)))
+        for meter in customer.meters:
+            if customer.type == 'MDM':
+                meter_data = query_mdm_intervals(meter, date)
+            else:
+                meter_data = query_dh(meter.sourceid, date, meter.variableid)
+                meter.add_data(meter_data)
 
-            meter_obj = Meter(row.IrrigationMeters, 'Irrigation', meter_data)
-
-        # Give customer object the meter and type
-        customer.add_meter(current_meter_obj=meter_obj)
-        customer.type == row.Type
-        # Add all usage from current meter to running usage total
-        customer.add_usage(meter_data.ReadValue.sum())
-
-        customer.mon_viol = monday_violations(meter_data)
-
-        # Calculate midday or Monday violations given DCP
-        # These are only done on irrigation meters b/c it is impossible to separate
-        # domestic usage from irrigation due to sheer volume of usage in large multi-fam properties
-        if dcp < 3:
-            customer.mid_viol = midday_violations(meter_data, dcp)
-        elif dcp >= 3:
-            customer.irrig_viol = irrigation_violations(meter_data)
+            customer.add_usage(meter_data.ReadValue.sum())
+            customer.mon_viol = monday_violations(meter_data)
+            # Calculate midday or Monday violations given DCP
+            if dcp < 3:
+                customer.add_days(midday_violations(meter_data, dcp))
+            elif dcp >= 3:
+                customer.irrig_viol += irrigation_violations(meter_data)
 
         # If total usage from all meters exceeds customer budget, add violation
-        if customer.usage > customer.allowance and dcp < 3:
-            customer.bug_viol = 1
+        if dcp < 3:
+            if customer.usage > customer.allowance:
+                customer.bug_viol = 1
+
+            days = [day for sublist in customer.mid_days for day in sublist]
+            print(days)
+            customer.mid_viol = len(set(days))
 
         customers.append(customer)
+        logging.info('Processed', customer.name, 'Allowance:', customer.allowance, 'Usage:', customer.usage)
+        print(customer.name, customer.meters)
 
     # Create workbook
     wb = Workbook()

@@ -16,9 +16,6 @@ def init_df(file):
     logging.info("init_df: Initializing dataframe")
     data = pd.read_excel(file)
 
-    # data.WaterMeters = data.WaterMeters.astype(str)
-    # data.IrrigationMeters = data.IrrigationMeters.astype(str)
-
     logging.info("init_df: Dataframe intialization complete")
     return data
 
@@ -40,7 +37,7 @@ def get_token(scope):
     return 'Bearer ' + token['access_token']
 
 
-def query_mdm_intervals(meter_id, date, acc_num):
+def query_mdm_intervals(meter_id, date):
     logging.info("query_mdm_intervals: Constructing MDM database query")
     odm = (
         'mssql+pyodbc:///?odbc_connect='
@@ -52,22 +49,16 @@ def query_mdm_intervals(meter_id, date, acc_num):
     )
 
     odm_1 = text("""
-        SELECT 
-                ReadValue,
-				        ReadDate
-            FROM
-                ODM.IntervalReads
-            WHERE
-                AccountNumber = :acc_num
-			AND
-				MeterIdentifier = :meter_id
-            AND
-                ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
+        SELECT ReadValue, ReadDate
+        FROM ODM.IntervalReads
+        WHERE MeterIdentifier = :meter_id
+        AND ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
     """)
+
     logging.info("query_mdm_intervals: Creating SQLAlchemy engine")
     odm_engine = create_engine(odm)
     logging.info("query_mdm_intervals: Querying MDM database")
-    dataframe = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    dataframe = pd.read_sql(odm_1, odm_engine, params={'meter_id': meter_id, 'date': date})
     logging.info("query_mdm_intervals: Disposing of engine")
     odm_engine.dispose()
     return dataframe
@@ -134,7 +125,9 @@ def midday_violations(df, dcp):
     midday_df.ReadDate = midday_df.ReadDate.dt.date
     # Group all values by day and sum of all day reads
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
-    return len(midday_df)
+    # Extract weekday names because customer could have two meters
+    midday_df['Weekday'] = pd.to_datetime(midday_df['ReadDate']).dt.day_name()
+    return midday_df['Weekday'].unique().tolist()
 
 
 def monday_violations(df):
@@ -145,22 +138,3 @@ def monday_violations(df):
         return 0
 
 
-def network_dump(xlsx_file, destination_path):
-    logging.info("network_dump: Performing network dump operation")
-
-    # Build paths to the source and destination (network) files
-    logging.info("network_dump: Building source file path")
-    source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\", "/")
-    logging.info(f"network_dump: source path: {source_file}")
-
-    logging.info("network_dump: Building destination path")
-    destination_file = os.path.join(destination_path, xlsx_file).replace("\\", "/")
-    logging.info(f"network_dump: destination path: {destination_file}")
-
-    # Copy file from one location to the network location
-    logging.info("network_dump: Performing shutil.copy operation")
-    try:
-        shutil.copy(source_file, destination_file)
-        logging.info("network_dump: shutil.copy operation complete")
-    except Exception as e:
-        logging.error(f"network_dump: failed to copy: {e}")
