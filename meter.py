@@ -1,6 +1,6 @@
 class Meter:
-    def __init__(self, meter_id, meter_type, source, var):
-        self.type, self.data = meter_type, None
+    def __init__(self, meter_id, source, var):
+        self.type, self.data = None, None
         self.meter_id = meter_id
         self.sourceid = source
         self.variableid = var

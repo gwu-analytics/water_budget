@@ -14,7 +14,7 @@ logging.basicConfig(filename='water_budget.log', level=logging.INFO, format='%(a
 
 def init_df(file):
     logging.info("init_df: Initializing dataframe")
-    data = pd.read_excel(file)
+    data = pd.read_excel(file, dtype={'SourceID': 'str', 'VariableID': 'str'})
 
     logging.info("init_df: Dataframe intialization complete")
     return data
@@ -58,7 +58,7 @@ def query_mdm_intervals(meter_id, date):
     logging.info("query_mdm_intervals: Creating SQLAlchemy engine")
     odm_engine = create_engine(odm)
     logging.info("query_mdm_intervals: Querying MDM database")
-    dataframe = pd.read_sql(odm_1, odm_engine, params={'meter_id': meter_id, 'date': date})
+    dataframe = pd.read_sql(odm_1, odm_engine, params={'meter_id': meter_id, 'date': str(date)})
     logging.info("query_mdm_intervals: Disposing of engine")
     odm_engine.dispose()
     return dataframe
@@ -69,7 +69,7 @@ def query_dh(source, date, variable):
     response = requests.get(url,
                             params={'DisplayLevel': 'ValueVariableDate', 'Granularity': 'Raw', 'From': date,
                                     'To': str(date + pd.Timedelta(days=7)), 'SourceId': source, 'VariableId': variable,
-                                    'UseReportingTimezone': 'true'},
+                                    'IncludeToBoundary': 'true', 'TimeZoneID': 'Central Standard Time'},
                             headers={'Authorization': get_token(['datahub-api'])}
                             )
     data = pd.json_normalize(json.loads(response.text))
@@ -116,17 +116,19 @@ def midday_violations(df, dcp):
         start = pd.to_datetime('08:00:00').time()
         end = pd.to_datetime('19:00:00').time()
 
-    midday_df = df[df.ReadValue > 0]
+    midday_df = df[df.ReadValue > 0].copy()
     if len(midday_df) == 0:
-        return 0
+        return []
 
     midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate)
     midday_df = midday_df[(midday_df.ReadDate.dt.time >= start) & (midday_df.ReadDate.dt.time <= end)]
     midday_df.ReadDate = midday_df.ReadDate.dt.date
     # Group all values by day and sum of all day reads
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
+    print('print df', midday_df)
     # Extract weekday names because customer could have two meters
     midday_df['Weekday'] = pd.to_datetime(midday_df['ReadDate']).dt.day_name()
+    print('print return', midday_df['Weekday'].unique().tolist())
     return midday_df['Weekday'].unique().tolist()
 
 

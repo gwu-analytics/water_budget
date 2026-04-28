@@ -28,24 +28,41 @@ def main():
         # Create customer obj and set object variables from data file
         customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea, cust_type=row.Type)
         customer.set_allowance(allowance=calculate_budget(row.IrrigatableArea, dcp))
-        for item in [x.strip() for x in str(int(row.SourceID)).split(",") if x.strip()]:
-            sources.append(item)
-        for item in [x.strip() for x in str(int(row.VariableID)).split(",") if x.strip()]:
-            vars.append(item)
-        for count, item in enumerate([x.strip() for x in str(row.IrrigationMeters).split(",") if x.strip()]):
-            customer.add_meter(Meter(item, 'Irrigation', sources[count], vars[count]))
 
+        # If user fails to input correct number of sources/variables in input file, skip customer
+        if len(sources) != len(vars):
+            print('Customer', customer.name, 'has incorrect sources/variable count. Skipping.')
+            logging.info('Customer', customer.name, 'has errors. Please fix.')
+            continue
+
+        # Add all customer meters with meter ID OR source/variable IDs depending on type
+        if customer.type == 'MDM':
+            meters = row.IrrigationMeters.split(',')
+            for meter in meters:
+                customer.add_meter(Meter(meter, 'N/A', 'N/A'))
+        else:
+            sources = row.SourceID.split(',')
+            vars = row.VariableID.split(',')
+            for source, var in zip(sources, vars):
+                customer.add_meter(Meter('N/A', source, var))
+
+        # Obtain data for each meter
         for meter in customer.meters:
+            print(customer.name, meter.meter_id)
             if customer.type == 'MDM':
-                meter_data = query_mdm_intervals(meter, date)
-            else:
+                #print(customer.type, type(meter.meter_id), date)
+                meter_data = query_mdm_intervals(meter.meter_id, date)
+            elif customer.type == 'Datahub':
                 meter_data = query_dh(meter.sourceid, date, meter.variableid)
                 meter.add_data(meter_data)
+            else:
+                logging.error('Customer type incorrect.')
 
             customer.add_usage(meter_data.ReadValue.sum())
             customer.mon_viol = monday_violations(meter_data)
             # Calculate midday or Monday violations given DCP
             if dcp < 3:
+                #print('adding days!')
                 customer.add_days(midday_violations(meter_data, dcp))
             elif dcp >= 3:
                 customer.irrig_viol += irrigation_violations(meter_data)
@@ -55,13 +72,13 @@ def main():
             if customer.usage > customer.allowance:
                 customer.bug_viol = 1
 
+            print(customer.mid_days)
             days = [day for sublist in customer.mid_days for day in sublist]
-            print(days)
             customer.mid_viol = len(set(days))
 
         customers.append(customer)
-        logging.info('Processed', customer.name, 'Allowance:', customer.allowance, 'Usage:', customer.usage)
-        print(customer.name, customer.meters)
+        logging.info('Processed', customer.name, 'Allowance:', customer.allowance, 'Usage:', float(customer.usage))
+        #print(customer.name, customer.usage)
 
     # Create workbook
     wb = Workbook()
@@ -115,7 +132,7 @@ def main():
 
     for i, customer in enumerate(customers):
         ws.cell(row=i + 2, column=1).value = customer.name
-        ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
+        ws.cell(row=i + 2, column=2).value = 'Customer Number :P'#customer.get_acc_party()
         ws.cell(row=i + 2, column=3).value = customer.bug_viol
         ws.cell(row=i + 2, column=4).value = customer.irrig_viol
         ws.cell(row=i + 2, column=5).value = customer.mid_viol

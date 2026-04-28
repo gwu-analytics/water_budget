@@ -21,4 +21,5 @@ class Customer:
         return self.__acc_party
 
     def add_days(self, days):
+        print('days', days)
         self.mid_days.append(days)
