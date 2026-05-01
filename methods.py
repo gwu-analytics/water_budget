@@ -38,7 +38,7 @@ def get_token(scope):
 
 
 def query_mdm_intervals(meter_id, date):
-    logging.info("query_mdm_intervals: Constructing MDM database query")
+    logging.info("query_mdm_intervals: Starting.")
     odm = (
         'mssql+pyodbc:///?odbc_connect='
         'DRIVER={ODBC Driver 17 for SQL Server};'
@@ -55,16 +55,14 @@ def query_mdm_intervals(meter_id, date):
         AND ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
     """)
 
-    logging.info("query_mdm_intervals: Creating SQLAlchemy engine")
     odm_engine = create_engine(odm)
-    logging.info("query_mdm_intervals: Querying MDM database")
     dataframe = pd.read_sql(odm_1, odm_engine, params={'meter_id': meter_id, 'date': str(date)})
-    logging.info("query_mdm_intervals: Disposing of engine")
     odm_engine.dispose()
     return dataframe
 
 
 def query_dh(source, date, variable):
+    logging.info("query_dh: Starting.")
     url = 'https://api-westus.opinum.com/data'
     response = requests.get(url,
                             params={'DisplayLevel': 'ValueVariableDate', 'Granularity': 'Raw', 'From': date,
@@ -125,10 +123,8 @@ def midday_violations(df, dcp):
     midday_df.ReadDate = midday_df.ReadDate.dt.date
     # Group all values by day and sum of all day reads
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
-    print('print df', midday_df)
     # Extract weekday names because customer could have two meters
     midday_df['Weekday'] = pd.to_datetime(midday_df['ReadDate']).dt.day_name()
-    print('print return', midday_df['Weekday'].unique().tolist())
     return midday_df['Weekday'].unique().tolist()
 
 

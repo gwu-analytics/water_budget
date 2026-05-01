@@ -26,7 +26,8 @@ def main():
     sources, vars = [], []
     for row in data.itertuples(index=True, name='Customer'):
         # Create customer obj and set object variables from data file
-        customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea, cust_type=row.Type)
+        customer = Customer(name=row.CustomerName, footage=row.IrrigatableArea, cust_type=row.Type,
+                            acc_party=row.CustomerNumber)
         customer.set_allowance(allowance=calculate_budget(row.IrrigatableArea, dcp))
 
         # If user fails to input correct number of sources/variables in input file, skip customer
@@ -62,7 +63,6 @@ def main():
             customer.mon_viol = monday_violations(meter_data)
             # Calculate midday or Monday violations given DCP
             if dcp < 3:
-                #print('adding days!')
                 customer.add_days(midday_violations(meter_data, dcp))
             elif dcp >= 3:
                 customer.irrig_viol += irrigation_violations(meter_data)
@@ -71,14 +71,11 @@ def main():
         if dcp < 3:
             if customer.usage > customer.allowance:
                 customer.bug_viol = 1
-
-            print(customer.mid_days)
             days = [day for sublist in customer.mid_days for day in sublist]
             customer.mid_viol = len(set(days))
 
         customers.append(customer)
-        logging.info('Processed', customer.name, 'Allowance:', customer.allowance, 'Usage:', float(customer.usage))
-        #print(customer.name, customer.usage)
+        logging.info('Processed' + customer.name + 'Allowance:' +str(customer.allowance) + 'Usage:' + str(customer.usage))
 
     # Create workbook
     wb = Workbook()
@@ -132,7 +129,7 @@ def main():
 
     for i, customer in enumerate(customers):
         ws.cell(row=i + 2, column=1).value = customer.name
-        ws.cell(row=i + 2, column=2).value = 'Customer Number :P'#customer.get_acc_party()
+        ws.cell(row=i + 2, column=2).value = customer.get_acc_party()
         ws.cell(row=i + 2, column=3).value = customer.bug_viol
         ws.cell(row=i + 2, column=4).value = customer.irrig_viol
         ws.cell(row=i + 2, column=5).value = customer.mid_viol
