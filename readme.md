@@ -83,10 +83,16 @@ Further experimentation will be done to compare a statistically significant set 
 The MMVT application is written in Python 3.12.
 
 The basic logic of the program is this:
-1. The program requests the user for a data file, a date, report type, and the current DCP stage.
+1. The program requests the user for a data file.
 2. The program loads the user file.
 3. The program goes from customer to customer in the user file, and for each, processes total violations of all types.
 4. The program outputs the violation counts to a formatted Excel file, and, if requested, a simplified report of all meter reads for a single customer.
 
 The program is designed to be used with a specific input file that provides the customer's account number and meter identifiers. The program is also designed to cover a single week in retrospect. 
+
+## NOTES - READ THIS
+- The DCP stage is set **MANUALLY**. It may change in the near future.
+
+## THINGS YOU SHOULD ADD IF YOU GET TIME
+- DCP input in data input file so customer can set the DCP. Just add a space to the file and pass it to the code. Should be super simple. You would need to update the tutorial though. 
 
