@@ -1,12 +1,9 @@
 class Customer:
-    def __init__(self, name, footage, cust_type):
-        self.name, self.footage, self.allowance, self.meters = name, footage, None, None
-        self.mon_viol, self.mid_viol, self.bug_viol, self.irrig_viol = 0, 0, 0, 0
-        self.meters = []
-        self.usage = 0
-        self.est_reads = 'NO'
+    def __init__(self, name, footage, cust_type, acc_party):
+        self.name, self.footage, self.ap, self.allowance, self.meters = name, footage, acc_party, None, None
+        self.mon_viol, self.mid_viol, self.bug_viol, self.irrig_viol, self.usage = 0, 0, 0, 0, 0
+        self.meters, self.mid_days = [], []
         self.type = cust_type
-        self.mid_days = []
 
     def set_allowance(self, allowance):
         self.allowance = allowance
@@ -18,8 +15,7 @@ class Customer:
         self.usage += usage
 
     def get_acc_party(self):
-        return self.__acc_party
+        return self.ap
 
     def add_days(self, days):
-        print('days', days)
         self.mid_days.append(days)
