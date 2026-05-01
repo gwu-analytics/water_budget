@@ -1,149 +1,43 @@
 import pyodbc
-import argparse
+import json
 import logging
-import setup
 import os
-import configparser
 from sqlalchemy import create_engine, text
 import pandas as pd
-import tkinter as tk
-from tkinter import filedialog
 import shutil
+from requests_oauthlib import OAuth2Session
+from oauthlib.oauth2 import LegacyApplicationClient
+import requests
 
-logging.basicConfig(filename='water_budget.log', level=logging.INFO, format = '%(asctime)s - %(message)s')
+logging.basicConfig(filename='water_budget.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-def parse_call_arguments():
-    parser = argparse.ArgumentParser(description="Process arguments on terminal call.")
-
-    # Setup command-line testing feature using the '-context_override' argument to override context-based behavior (mimic a system call)
-    parser.add_argument("-context_override", type=int, help="Provide a 1 to override context-based behaviour for testing.", default=0)
-
-    # Return args
-    args = parser.parse_args()
-    return args
-
-def check_execution_context():
-    # Check if a specific environment variable set by Task Scheduler exists
-    # TODO: Log username
-    logging.info(f"check_execution_context: User= {os.environ['USERNAME']}")
-
-    if 'USERNAME' in os.environ and os.environ['USERNAME'] == 'SYSTEM':
-        return 1 # Call is from the system
-    
-    else:
-        return 0 # Call is from a user
-
-
-def check_for_config():
-    logging.info("check_for_config: Checking for existing config.ini")
-    if os.path.isfile('config.ini') == True:
-        print('Detected "config.ini" file...')
-        logging.info("check_for_config: Detected config.ini file")
-    else:
-        print('No "config.ini" file found, running setup.')
-        logging.info("check_for_config: No config file detected")
-        setup.setup()
-
-
-def create_config():
-    logging.info("create_config: Running config creation wizard")
-
-    # Create ConfigParser object
-    config = configparser.ConfigParser()
-    
-    # Request target file
-    print('Select data file...')
-    target_file = file_explorer()
-
-    # Request metadata
-    dcp = int(input('Enter current DCP stage, from 0 to 4: '))
-    while dcp not in range (5):
-        dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
-
-    # Request output dir
-    print('Select output directory...')
-    output_dir = select_directory()
-
-    # Build config file
-    config['General'] = {'debug': True, 'log_level': 'info'}
-    config['Meta'] = {'dcp': f'{dcp}'}
-    config['Data'] = {'data_file': target_file}
-    config['Output'] = {'output_path': output_dir}
-
-    # config_data = read_config()
-    # logging.info(f"create_config: Config settings:\n\tGeneral: Meta: {config_data['dcp']}\n\tData: {config_data['data_file']}\n\tOutput: {config['output_path']}")
-
-    # Write to file
-    try: 
-        with open('config.ini', 'w') as configfile:
-            config.write(configfile)
-            logging.info("create_config: Config file written")
-    except Exception as e:
-        logging.error(f"create_config: Failure writing config.ini: {e}")
 
 def init_df(file):
     logging.info("init_df: Initializing dataframe")
-    data = pd.read_excel(file)
-
-    logging.info("init_df: Loading domestic meter data to dataframe")
-    data.WaterMeters = data.WaterMeters.astype(str)
-
-    logging.info("init_df: Loading irrigation meter data to dataframe")
-    data.IrrigationMeters = data.IrrigationMeters.astype(str)
+    data = pd.read_excel(file, dtype={'SourceID': 'str', 'VariableID': 'str'})
 
     logging.info("init_df: Dataframe intialization complete")
     return data
 
-def update_dcp():
-    # Create ConfigParser object
-    config = configparser.ConfigParser()
 
-    # Read config file
-    config.read('config.ini')
-
-    # Elicit DCP value
-    print(f'Current DCP stage: {config.get('Meta', 'dcp')}')
-    dcp = int(input('Enter current DCP stage, from 0 to 4: '))
-    while dcp not in range (5):
-        dcp = int(input('- It has to be 0, 1, 2, 3, or 4, please: '))
-
-    # Modify dcp
-    config.set('Meta', 'dcp', dcp)
-
-    # Write to config
-    with open('config.ini', 'w') as configfile:
-        config.write(configfile)
+def get_creds():
+    creds = json.load(open('C:/Users/gduke/PycharmProjects/WaterBud/data/credentials.secret'))
+    return creds['client_id'], creds['client_secret'], creds['username'], creds['password']
 
 
-def read_config():
-    # Create ConfigParser object
-    config = configparser.ConfigParser()
+def get_token(scope):
+    client_id, client_secret, username, password = get_creds()
+    # Session object
+    oauth = OAuth2Session(client=LegacyApplicationClient(client_id=client_id))
 
-    # Read config file
-    config.read('config.ini')
+    # Fetch a token
+    token = oauth.fetch_token('https://identity-westus.opinum.com/connect/token',
+                              scope=scope, client_secret=client_secret, username=username, password=password)
 
-    # Access values from config
-    debug_mode = config.getboolean('General', 'debug')
-    log_level = config.get('General', 'log_level')
-    data_path = config.get('Data', 'data_file')
-    dcp_value = config.get('Meta', 'dcp')
-    output_path = config.get('Output', 'output_path')
-
-    # Construct a dictionary with retreived values
-    config_values = {
-        'debug_mode': debug_mode,
-        'log_level': log_level,
-        'data_path': data_path,
-        'dcp_value': dcp_value,
-        'output_path': output_path
-    }
-
-    # Return the dict to the calling function
-    return config_values
+    return 'Bearer ' + token['access_token']
 
 
-
-def query_mdm_intervals(meter_id, date, acc_num):
+def query_mdm_intervals(meter_id, date):
     logging.info("query_mdm_intervals: Constructing MDM database query")
     odm = (
         'mssql+pyodbc:///?odbc_connect='
@@ -155,34 +49,43 @@ def query_mdm_intervals(meter_id, date, acc_num):
     )
 
     odm_1 = text("""
-        SELECT 
-                ReadValue,
-				        ReadDate
-            FROM
-                ODM.IntervalReads
-            WHERE
-                AccountNumber = :acc_num
-			AND
-				MeterIdentifier = :meter_id
-            AND
-                ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
+        SELECT ReadValue, ReadDate
+        FROM ODM.IntervalReads
+        WHERE MeterIdentifier = :meter_id
+        AND ReadDate >= :date AND ReadDate < DATEADD(DAY, 7, :date)
     """)
+
     logging.info("query_mdm_intervals: Creating SQLAlchemy engine")
     odm_engine = create_engine(odm)
     logging.info("query_mdm_intervals: Querying MDM database")
-    dataframe = pd.read_sql(odm_1, odm_engine, params={'acc_num': acc_num, 'meter_id': meter_id, 'date': date})
+    dataframe = pd.read_sql(odm_1, odm_engine, params={'meter_id': meter_id, 'date': str(date)})
     logging.info("query_mdm_intervals: Disposing of engine")
     odm_engine.dispose()
     return dataframe
 
 
+def query_dh(source, date, variable):
+    url = 'https://api-westus.opinum.com/data'
+    response = requests.get(url,
+                            params={'DisplayLevel': 'ValueVariableDate', 'Granularity': 'Raw', 'From': date,
+                                    'To': str(date + pd.Timedelta(days=7)), 'SourceId': source, 'VariableId': variable,
+                                    'IncludeToBoundary': 'true', 'TimeZoneID': 'Central Standard Time'},
+                            headers={'Authorization': get_token(['datahub-api'])}
+                            )
+    data = pd.json_normalize(json.loads(response.text))
+    data = data.rename(columns={'date': 'ReadDate', 'rawValue': 'ReadValue'})
+    data = data[['ReadDate', 'ReadValue']]
+    data['ReadDate'] = pd.to_datetime(data['ReadDate']).dt.strftime('%Y-%m-%dT%H:%M:%S')
+    return data
+
+
 def calculate_budget(acres, dcp_num):
     if dcp_num == 0:
-        return (acres * (1 / 12) * 7.48) / 1000
+        return (acres * (1 / 12) * 7.48)
     elif dcp_num == 1:
-        return (acres * (0.75 / 12) * 7.48) / 1000
+        return (acres * (0.75 / 12) * 7.48)
     elif dcp_num == 2:
-        return (acres * (0.5 / 12) * 7.48) / 1000
+        return (acres * (0.5 / 12) * 7.48)
     else:
         return 0
 
@@ -207,18 +110,26 @@ def irrigation_violations(df):
 def midday_violations(df, dcp):
     # Start times are one hour ahead of actual times
     if dcp == 1:
-        start = pd.to_datetime('10:00:00').time()
+        start = pd.to_datetime('09:00:00').time()
         end = pd.to_datetime('19:00:00').time()
     elif dcp == 2:
         start = pd.to_datetime('08:00:00').time()
         end = pd.to_datetime('19:00:00').time()
-    midday_df = df.copy()
+
+    midday_df = df[df.ReadValue > 0].copy()
+    if len(midday_df) == 0:
+        return []
+
     midday_df.ReadDate = pd.to_datetime(midday_df.ReadDate)
     midday_df = midday_df[(midday_df.ReadDate.dt.time >= start) & (midday_df.ReadDate.dt.time <= end)]
     midday_df.ReadDate = midday_df.ReadDate.dt.date
     # Group all values by day and sum of all day reads
     midday_df = midday_df.groupby('ReadDate')['ReadValue'].sum().reset_index()
-    return len(midday_df[midday_df.ReadValue > 0])
+    print('print df', midday_df)
+    # Extract weekday names because customer could have two meters
+    midday_df['Weekday'] = pd.to_datetime(midday_df['ReadDate']).dt.day_name()
+    print('print return', midday_df['Weekday'].unique().tolist())
+    return midday_df['Weekday'].unique().tolist()
 
 
 def monday_violations(df):
@@ -229,39 +140,3 @@ def monday_violations(df):
         return 0
 
 
-def file_explorer():
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes('-topmost', True)
-    filepath = filedialog.askopenfilename()
-    root.destroy()
-    return filepath
-
-
-def select_directory():
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes('-topmost', True)
-    directory = filedialog.askdirectory(title='Select Output Directory')
-    root.destroy()
-    return directory
-
-def network_dump(xlsx_file, destination_path):
-    logging.info("network_dump: Performing network dump operation")
-
-    # Build paths to the source and destination (network) files
-    logging.info("network_dump: Building source file path")
-    source_file = os.path.join(os.getcwd(), xlsx_file).replace("\\","/")
-    logging.info(f"network_dump: source path: {source_file}")
-                 
-    logging.info("network_dump: Building destination path")
-    destination_file = os.path.join(destination_path, xlsx_file).replace("\\","/")
-    logging.info(f"network_dump: destination path: {destination_file}")
-
-    # Copy file from one location to the network location
-    logging.info("network_dump: Performing shutil.copy operation")
-    try:
-        shutil.copy(source_file, destination_file)
-        logging.info("network_dump: shutil.copy operation complete")
-    except Exception as e:
-        logging.error(f"network_dump: failed to copy: {e}")

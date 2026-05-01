@@ -1,14 +1,12 @@
 class Customer:
-    def __init__(self, name, footage):
+    def __init__(self, name, footage, cust_type):
         self.name, self.footage, self.allowance, self.meters = name, footage, None, None
         self.mon_viol, self.mid_viol, self.bug_viol, self.irrig_viol = 0, 0, 0, 0
         self.meters = []
-        self.__acc_party = None
         self.usage = 0
         self.est_reads = 'NO'
-
-    def set_acc_party(self, acc_party):
-        self.__acc_party = acc_party
+        self.type = cust_type
+        self.mid_days = []
 
     def set_allowance(self, allowance):
         self.allowance = allowance
@@ -21,3 +19,7 @@ class Customer:
 
     def get_acc_party(self):
         return self.__acc_party
+
+    def add_days(self, days):
+        print('days', days)
+        self.mid_days.append(days)
